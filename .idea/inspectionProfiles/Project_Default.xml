@@ -1,0 +1,31 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="18">
+            <item index="0" class="java.lang.String" itemvalue="nose" />
+            <item index="1" class="java.lang.String" itemvalue="dg-logging" />
+            <item index="2" class="java.lang.String" itemvalue="transformers" />
+            <item index="3" class="java.lang.String" itemvalue="jieba" />
+            <item index="4" class="java.lang.String" itemvalue="python-Levenshtein" />
+            <item index="5" class="java.lang.String" itemvalue="scikit-learn" />
+            <item index="6" class="java.lang.String" itemvalue="opencv-python" />
+            <item index="7" class="java.lang.String" itemvalue="PyYAML" />
+            <item index="8" class="java.lang.String" itemvalue="python-dateutil" />
+            <item index="9" class="java.lang.String" itemvalue="sklearn" />
+            <item index="10" class="java.lang.String" itemvalue="machine-learning-framework" />
+            <item index="11" class="java.lang.String" itemvalue="zhon" />
+            <item index="12" class="java.lang.String" itemvalue="seqeval" />
+            <item index="13" class="java.lang.String" itemvalue="tensorboardX" />
+            <item index="14" class="java.lang.String" itemvalue="u-shape-framework" />
+            <item index="15" class="java.lang.String" itemvalue="xmltodict" />
+            <item index="16" class="java.lang.String" itemvalue="flask" />
+            <item index="17" class="java.lang.String" itemvalue="setproctitle" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
