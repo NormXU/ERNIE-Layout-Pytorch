@@ -1,0 +1,5 @@
+editdistance
+textdistance
+torch
+torchvision
+transformers==4.24.0
