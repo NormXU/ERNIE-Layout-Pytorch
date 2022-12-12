@@ -1,4 +1,4 @@
-# ERNIE-Layout_Pytorch
+# ERNIE-Layout-Pytorch
 
 This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) which is originally released through PaddleNLP.
 
@@ -9,7 +9,7 @@ A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https:/
 
 **Get Ready**
 
-After downloading the model, you need to set sentencepiece_model_file and vocab_file in tokenizer_config.json to your own directory
+After downloading the model, you need to set ``sentencepiece_model_file`` and ``vocab_file`` in **tokenizer_config.json** to your own directory
 
 **A Quick Example**
 ```python
