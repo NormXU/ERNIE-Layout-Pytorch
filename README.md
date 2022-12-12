@@ -7,7 +7,9 @@ This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/
 
 A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch/tree/main)
 
+**Get Ready**
 
+After downloading the model, you need to set sentencepiece_model_file and vocab_file in tokenizer_config.json to your own directory
 
 **A Quick Example**
 ```python
