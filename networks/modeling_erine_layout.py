@@ -188,7 +188,6 @@ class ErnieLayoutEmbeddings(nn.Module):
 
 
 class ErnieLayoutPretrainedModel(PreTrainedModel):
-
     """
        An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained
        models.
@@ -272,16 +271,16 @@ class ErnieLayoutSelfAttention(nn.Module):
         return q, k, v
 
     def forward(
-        self,
-        hidden_states,
-        attention_mask=None,
-        head_mask=None,
-        encoder_hidden_states=None,
-        encoder_attention_mask=None,
-        past_key_value=None,
-        output_attentions=False,
-        rel_pos=None,
-        rel_2d_pos=None,
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            past_key_value=None,
+            output_attentions=False,
+            rel_pos=None,
+            rel_2d_pos=None,
     ):
         q, k, v = self.compute_qkv(hidden_states)
 
@@ -326,16 +325,16 @@ class ErnieLayoutAttention(nn.Module):
         self.output = ErnieLayoutSelfOutput(config)
 
     def forward(
-        self,
-        hidden_states,
-        attention_mask=None,
-        head_mask=None,
-        encoder_hidden_states=None,
-        encoder_attention_mask=None,
-        past_key_value=None,
-        output_attentions=False,
-        rel_pos=None,
-        rel_2d_pos=None,
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            past_key_value=None,
+            output_attentions=False,
+            rel_pos=None,
+            rel_2d_pos=None,
     ):
 
         self_outputs = self.self(
@@ -353,8 +352,8 @@ class ErnieLayoutAttention(nn.Module):
         # add attentions if we output them
         if output_attentions:
             outputs = [
-                attention_output,
-            ] + self_outputs[1:]
+                          attention_output,
+                      ] + self_outputs[1:]
         else:
             outputs = [attention_output]
         return outputs
@@ -419,17 +418,17 @@ class ErnieLayoutEncoder(nn.Module):
         return rel_2d_pos
 
     def forward(
-        self,
-        hidden_states,
-        attention_mask=None,
-        head_mask=None,
-        encoder_hidden_states=None,
-        encoder_attention_mask=None,
-        past_key_values=None,
-        output_attentions=False,
-        output_hidden_states=False,
-        bbox=None,
-        position_ids=None,
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            past_key_values=None,
+            output_attentions=False,
+            output_hidden_states=False,
+            bbox=None,
+            position_ids=None,
     ):
         all_hidden_states = () if output_hidden_states else None
 
@@ -444,7 +443,7 @@ class ErnieLayoutEncoder(nn.Module):
 
         for i, layer_module in enumerate(self.layer):
             if output_hidden_states:
-                all_hidden_states = all_hidden_states + (hidden_states, )
+                all_hidden_states = all_hidden_states + (hidden_states,)
 
             layer_head_mask = head_mask[i] if head_mask is not None else None
             past_key_value = past_key_values[
@@ -521,16 +520,16 @@ class ErnieLayoutLayer(nn.Module):
         return layer_output
 
     def forward(
-        self,
-        hidden_states,
-        attention_mask=None,
-        head_mask=None,
-        encoder_hidden_states=None,
-        encoder_attention_mask=None,
-        past_key_value=None,
-        output_attentions=False,
-        rel_pos=None,
-        rel_2d_pos=None,
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            past_key_value=None,
+            output_attentions=False,
+            rel_pos=None,
+            rel_2d_pos=None,
     ):
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
         self_attn_past_key_value = past_key_value[:
@@ -549,10 +548,10 @@ class ErnieLayoutLayer(nn.Module):
 
         if output_attentions:
             outputs = self_attention_outputs[
-                1:]  # add self attentions if we output attention weights
+                      1:]  # add self attentions if we output attention weights
             outputs = [
-                layer_output,
-            ] + list(outputs)
+                          layer_output,
+                      ] + list(outputs)
         else:
             outputs = [layer_output]
         return outputs
@@ -579,7 +578,6 @@ class VisualBackbone(nn.Module):
         features = self.backbone(images_input)
         features = self.pool(features).flatten(start_dim=2).transpose(1, 2).contiguous()
         return features
-
 
 
 class ErnieLayoutModel(ErnieLayoutPretrainedModel):
@@ -623,8 +621,8 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
     """
 
     def __init__(
-        self,
-        config,
+            self,
+            config,
     ):
         super(ErnieLayoutModel, self).__init__(config)
         with_pool = 'tanh',
@@ -710,7 +708,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
 
     def resize_position_embeddings(self, new_num_position_embeddings):
         """
-        Resizes position embeddings of the model if `new_num_position_embeddings != config["max_position_embeddings"]`.
+        Resizes position embeddings of the model if `new_num_position_embeddings != config.max_position_embeddings`.
 
         Arguments:
             new_num_position_embeddings (`int`):
@@ -754,7 +752,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
                 inputs_embeds=None,
                 output_hidden_states=False,
                 output_attentions=False,
-                return_dict=None,):
+                return_dict=None, ):
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
@@ -861,7 +859,7 @@ class ErnieLayoutForSequenceClassification(ErnieLayoutPretrainedModel):
 
     def resize_position_embeddings(self, new_num_position_embeddings):
         """
-        Resizes position embeddings of the model if `new_num_position_embeddings != config["max_position_embeddings"]`.
+        Resizes position embeddings of the model if `new_num_position_embeddings != config.max_position_embeddings`.
 
         Arguments:
             new_num_position_embeddings (`int`):
@@ -873,26 +871,31 @@ class ErnieLayoutForSequenceClassification(ErnieLayoutPretrainedModel):
             new_num_position_embeddings)
 
     def forward(
-        self,
-        input_ids=None,
-        bbox=None,
-        pixel_values=None,
-        attention_mask=None,
-        token_type_ids=None,
-        position_ids=None,
-        head_mask=None,
-        labels=None,
+            self,
+            input_ids=None,
+            bbox=None,
+            pixel_values=None,
+            attention_mask=None,
+            token_type_ids=None,
+            position_ids=None,
+            head_mask=None,
+            labels=None,
     ):
         input_shape = input_ids.size()
-        visual_shape = list(input_shape)
-        visual_shape[1] = self.ernie_layout.config["image_feature_pool_shape"][
-            0] * self.ernie_layout.config["image_feature_pool_shape"][1]
-        visual_bbox = self.ernie_layout._calc_visual_bbox(
-            self.ernie_layout.config["image_feature_pool_shape"], bbox,
-            visual_shape)
+        device = input_ids.device
 
-        visual_position_ids = torch.arange(0, visual_shape[1]).expand(
-            [input_shape[0], visual_shape[1]])
+        visual_shape = list(input_shape)
+        visual_shape[1] = self.ernie_layout.config.image_feature_pool_shape[0] * \
+                          self.ernie_layout.config.image_feature_pool_shape[1]
+        visual_shape = torch.Size(visual_shape)
+        final_shape = list(input_shape)
+        final_shape[1] = final_shape[1] + visual_shape[1]
+        final_shape = torch.Size(final_shape)
+        visual_bbox = self._calc_visual_bbox(self.config.image_feature_pool_shape, bbox, device, final_shape)
+
+        visual_position_ids = torch.arange(0, visual_shape[1], dtype=torch.long, device=device).repeat(
+            input_shape[0], 1
+        )
 
         initial_image_embeddings = self.ernie_layout._calc_img_embeddings(
             image=pixel_values,
@@ -911,14 +914,13 @@ class ErnieLayoutForSequenceClassification(ErnieLayoutPretrainedModel):
         )
         seq_length = input_ids.shape[1]
         # sequence out and image out
-        sequence_output, final_image_embeddings = outputs[
-            0][:, :seq_length], outputs[0][:, seq_length:]
+        sequence_output, final_image_embeddings = outputs[0][:, :seq_length], outputs[0][:, seq_length:]
 
         cls_final_output = sequence_output[:, 0, :]
 
         # average-pool the visual embeddings
-        pooled_initial_image_embeddings = initial_image_embeddings.mean(axis=1)
-        pooled_final_image_embeddings = final_image_embeddings.mean(axis=1)
+        pooled_initial_image_embeddings = initial_image_embeddings.mean(dim=1)
+        pooled_final_image_embeddings = final_image_embeddings.mean(dim=1)
         # concatenate with cls_final_output
         sequence_output = torch.cat([
             cls_final_output, pooled_initial_image_embeddings,
@@ -938,7 +940,7 @@ class ErnieLayoutForSequenceClassification(ErnieLayoutPretrainedModel):
                                 -1,
                             ]))
 
-            outputs = (loss, ) + outputs
+            outputs = (loss,) + outputs
 
         return outputs
 
@@ -967,16 +969,14 @@ class ErnieLayoutPredictionHead(nn.Module):
     def forward(self, hidden_states, masked_positions=None):
         if masked_positions is not None:
             hidden_states = torch.reshape(hidden_states,
-                                           [-1, hidden_states.shape[-1]])
-            hidden_states = torch.gather(hidden_states,
-                                                 masked_positions)
+                                          [-1, hidden_states.shape[-1]])
+            hidden_states = hidden_states.gather(0, masked_positions)
         # gather masked tokens might be more quick
         hidden_states = self.transform(hidden_states)
         hidden_states = self.activation(hidden_states)
         hidden_states = self.layer_norm(hidden_states)
-        hidden_states = torch.tensor.matmul(
-            hidden_states, self.decoder_weight,
-            transpose_y=True) + self.decoder_bias
+        hidden_states = torch.matmul(
+            hidden_states, self.decoder_weight) + self.decoder_bias
         return hidden_states
 
 
@@ -999,19 +999,18 @@ class ErnieLayoutPretrainingHeads(nn.Module):
 
 class ErnieLayoutForPretraining(ErnieLayoutPretrainedModel):
 
-    def __init__(self, ernie_layout):
-        super(ErnieLayoutForPretraining, self).__init__()
+    def __init__(self, ernie_layout, config):
+        super(ErnieLayoutForPretraining, self).__init__(config)
         self.ernie_layout = ernie_layout
         self.cls = ErnieLayoutPretrainingHeads(
-            self.ernie_layout.config["hidden_size"],
-            self.ernie_layout.config["vocab_size"],
-            self.ernie_layout.config["hidden_act"],
-            embedding_weights=self.ernie_layout.embeddings.word_embeddings.
-            weight)
+            self.ernie_layout.config.hidden_size,
+            self.ernie_layout.config.vocab_size,
+            self.ernie_layout.config.hidden_act,
+            embedding_weights=self.ernie_layout.embeddings.word_embeddings.weight)
 
     def resize_position_embeddings(self, new_num_position_embeddings):
         """
-        Resizes position embeddings of the model if `new_num_position_embeddings != config["max_position_embeddings"]`.
+        Resizes position embeddings of the model if `new_num_position_embeddings != config.max_position_embeddings`.
 
         Arguments:
             new_num_position_embeddings (`int`):
@@ -1060,7 +1059,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
 
     def resize_position_embeddings(self, new_num_position_embeddings):
         """
-        Resizes position embeddings of the model if `new_num_position_embeddings != config["max_position_embeddings"]`.
+        Resizes position embeddings of the model if `new_num_position_embeddings != config.max_position_embeddings`.
 
         Arguments:
             new_num_position_embeddings (`int`):
@@ -1072,15 +1071,15 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
             new_num_position_embeddings)
 
     def forward(
-        self,
-        input_ids=None,
-        bbox=None,
-        pixel_values=None,
-        attention_mask=None,
-        token_type_ids=None,
-        position_ids=None,
-        head_mask=None,
-        labels=None,
+            self,
+            input_ids=None,
+            bbox=None,
+            pixel_values=None,
+            attention_mask=None,
+            token_type_ids=None,
+            position_ids=None,
+            head_mask=None,
+            labels=None,
     ):
         outputs = self.ernie_layout(
             input_ids=input_ids,
@@ -1117,7 +1116,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
                                     -1,
                                 ]))
 
-            outputs = (loss, ) + outputs
+            outputs = (loss,) + outputs
 
         return outputs
 
@@ -1138,7 +1137,7 @@ class ErnieLayoutForQuestionAnswering(ErnieLayoutPretrainedModel):
 
     def resize_position_embeddings(self, new_num_position_embeddings):
         """
-        Resizes position embeddings of the model if `new_num_position_embeddings != config["max_position_embeddings"]`.
+        Resizes position embeddings of the model if `new_num_position_embeddings != config.max_position_embeddings`.
 
         Arguments:
             new_num_position_embeddings (`int`):
