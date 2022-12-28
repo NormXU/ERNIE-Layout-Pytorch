@@ -24,7 +24,6 @@ from .tokenizer_utils import PretrainedTokenizer
 SPIECE_UNDERLINE = "▁"
 
 
-
 class ErnieLayoutTokenizer(PretrainedTokenizer):
     pretrained_init_configuration = {
         "ernie-layoutx-base-uncased": {
@@ -63,6 +62,7 @@ class ErnieLayoutTokenizer(PretrainedTokenizer):
                  verbose=True,
                  **kwargs):
 
+        name_or_path = kwargs['name_or_path']
         bos_token = AddedToken(bos_token, lstrip=False, rstrip=False) if isinstance(bos_token, str) else bos_token
         eos_token = AddedToken(eos_token, lstrip=False, rstrip=False) if isinstance(eos_token, str) else eos_token
         sep_token = AddedToken(sep_token, lstrip=False, rstrip=False) if isinstance(sep_token, str) else sep_token
@@ -71,8 +71,7 @@ class ErnieLayoutTokenizer(PretrainedTokenizer):
         pad_token = AddedToken(pad_token, lstrip=False, rstrip=False) if isinstance(pad_token, str) else pad_token
 
         mask_token = AddedToken(mask_token,
-                                lstrip=True, rstrip=False) if isinstance(
-                                    mask_token, str) else mask_token
+                                lstrip=True, rstrip=False) if isinstance(mask_token, str) else mask_token
         self._sep_token = sep_token
         self._cls_token = cls_token
         self._unk_token = unk_token
@@ -82,11 +81,10 @@ class ErnieLayoutTokenizer(PretrainedTokenizer):
         self._bos_token = bos_token
         self._eos_token = eos_token
         self.sp_model = spm.SentencePieceProcessor()
-        self.vocab_file = vocab_file
-        self.sentencepiece_model_file = sentencepiece_model_file
-        if os.path.isfile(sentencepiece_model_file):
-            self.sp_model.Load(sentencepiece_model_file)
-        self.vocab_file = vocab_file
+        self.sentencepiece_model_file = os.path.join(name_or_path, sentencepiece_model_file)
+        if os.path.isfile(self.sentencepiece_model_file):
+            self.sp_model.Load(self.sentencepiece_model_file)
+        self.vocab_file = os.path.join(name_or_path, vocab_file)
         self.do_tokenize_postprocess = do_tokenize_postprocess
 
         self.tokens_to_ids = {"[CLS]": 0, "[PAD]": 1, "[SEP]": 2, "[UNK]": 3}
@@ -111,8 +109,6 @@ class ErnieLayoutTokenizer(PretrainedTokenizer):
         self.model_max_length = model_max_length
         self.verbose = verbose
 
-
-
     def build_inputs_with_special_tokens(
             self,
             token_ids_0: List[int],
@@ -127,12 +123,12 @@ class ErnieLayoutTokenizer(PretrainedTokenizer):
                                                  offset_mapping_0,
                                                  offset_mapping_1=None):
         r"""
-        Build offset map from a pair of offset map by concatenating and adding offsets of special tokens. 
-        
+        Build offset map from a pair of offset map by concatenating and adding offsets of special tokens.
+
         An ERNIE-LayoutX offset_mapping has the following format:
         - single sequence:      ``(0,0) X (0,0)``
         - pair of sequences:        ``(0,0) A (0,0) (0,0) B (0,0)``
-        
+
         Args:
             offset_mapping_ids_0 (List[tuple]):
                 List of char offsets to which the special tokens will be added.
@@ -167,8 +163,7 @@ class ErnieLayoutTokenizer(PretrainedTokenizer):
 
         if token_ids_1 is None:
             return [1] + ([0] * len(token_ids_0)) + [1]
-        return [1] + ([0] * len(token_ids_0)) + [1, 1] + (
-            [0] * len(token_ids_1)) + [1]
+        return [1] + ([0] * len(token_ids_0)) + [1, 1] + ([0] * len(token_ids_1)) + [1]
 
     def create_token_type_ids_from_sequences(
             self,

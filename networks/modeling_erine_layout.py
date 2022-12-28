@@ -1157,7 +1157,8 @@ class ErnieLayoutForQuestionAnswering(ErnieLayoutPretrainedModel):
                 position_ids=None,
                 head_mask=None,
                 start_positions=None,
-                end_positions=None):
+                end_positions=None,
+                **kwargs):
         outputs = self.ernie_layout(
             input_ids=input_ids,
             bbox=bbox,

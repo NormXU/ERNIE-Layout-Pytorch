@@ -14,26 +14,43 @@ After downloading the model, you need to set ``sentencepiece_model_file`` and ``
 **A Quick Example**
 ```python
 from networks.modeling_erine_layout import ErnieLayoutConfig, ErnieLayoutForQuestionAnswering
+from networks.feature_extractor import ErnieFeatureExtractor
 from networks.tokenizer import ErnieLayoutTokenizer
+from networks.model_util import ernie_qa_tokenize, prepare_context_info
+from PIL import Image
 
 
 pretrain_torch_model_or_path = "path/to/pretrained-model"
 
 # initialize tokenizer
 tokenizer = ErnieLayoutTokenizer.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
-encodings = tokenizer.encode_plus(text="Question", text_pair="Answer", add_special_tokens=True,
-                                  max_length=512, truncation="only_second",
-                                  return_offsets_mapping=True, return_attention_mask=True,
-                                  return_overflowing_tokens=True)
+context = ['This is an example document', 'All ocr boxes are inserted into this list']
+layout = [[381, 91, 505, 115], [738, 96, 804, 122]]
+
+# intialize feature extractor
+feature_extractor = ErnieFeatureExtractor()
+
+pil_image = Image.open("/path/to/image").convert("RGB")
+
+# Tokenize context & questions
+context_encodings, context_id2subword_id, debug_info = prepare_context_info(tokenizer,
+                                                                            context,
+                                                                            layout)
+question = "what is it?"
+tokenized_res = ernie_qa_tokenize(tokenizer, question, context_encodings)
+
+# Process image
+tokenized_res['pixel_values'] = feature_extractor(pil_image)
 
 # initialize config
 config = ErnieLayoutConfig.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
-config.num_classes = 2
+config.num_classes = 2 # start and end
 
 # initialize ERNIE for VQA
 model = ErnieLayoutForQuestionAnswering.from_pretrained(
     pretrained_model_name_or_path=pretrain_torch_model_or_path,
     config=config,
 )
+output = model(**tokenized_res)
 
 ```
