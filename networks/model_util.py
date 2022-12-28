@@ -90,7 +90,7 @@ def prepare_context_info(tokenizer, context, layout, debug=True):
         all_missing_tail_blank += missing_tail_blank
         char_len_cnt = eop_idx + char_len_cnt - bias
 
-    return context_encodings, context_id2subword_id, debug_context_id2subword_id
+    return context_encodings
 
 
 def ernie_qa_tokenize(tokenizer, question, context_encodings,

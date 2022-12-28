@@ -30,17 +30,21 @@ layout = [[381, 91, 505, 115], [738, 96, 804, 122]]
 # intialize feature extractor
 feature_extractor = ErnieFeatureExtractor()
 
-pil_image = Image.open("/path/to/image").convert("RGB")
-
 # Tokenize context & questions
-context_encodings, context_id2subword_id, debug_info = prepare_context_info(tokenizer,
-                                                                            context,
-                                                                            layout)
+context_encodings, = prepare_context_info(tokenizer, context, layout)
 question = "what is it?"
 tokenized_res = ernie_qa_tokenize(tokenizer, question, context_encodings)
 
+# answer start && end index
+tokenized_res['start_positions'] = 6
+tokenized_res['end_positions'] = 12
+
+# open the image of the document
+pil_image = Image.open("/path/to/image").convert("RGB")
+
 # Process image
 tokenized_res['pixel_values'] = feature_extractor(pil_image)
+
 
 # initialize config
 config = ErnieLayoutConfig.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
@@ -51,6 +55,8 @@ model = ErnieLayoutForQuestionAnswering.from_pretrained(
     pretrained_model_name_or_path=pretrain_torch_model_or_path,
     config=config,
 )
+
 output = model(**tokenized_res)
+
 
 ```
