@@ -27,7 +27,7 @@ def count_blanks(input_str, start_idx):
     return num_blanks
 
 
-def prepare_context_info(tokenizer, context, layout, debug=True):
+def prepare_context_info(tokenizer, context, layout):
     """
         Project context index to subword index; Version 2
     """
@@ -35,14 +35,13 @@ def prepare_context_info(tokenizer, context, layout, debug=True):
     underline_char = '▁'  # xlmRobertaTokenzier use this char to represent the beginning of a sentence
     context_encodings = []
     for text_chunk, bbox in zip(context, layout):
-        encoding = dict(  # offset_mapping=tokenizer.get_offset_mapping(text_chunk),
+        encoding = dict(
             input_ids=tokenizer.encode(text_chunk, add_special_tokens=False),
             token_list=tokenizer.tokenize(text_chunk))
         encoding.update({'bbox': [bbox] * len(encoding['input_ids'])})
         context_encodings.append(encoding)
 
     context_id2subword_id = []
-    debug_context_id2subword_id = []
     char_len_cnt = 0
     all_missing_tail_blank = 0
     for ctx_idx, (ctx, chunk_encoding) in enumerate(zip(context, context_encodings)):
@@ -82,10 +81,7 @@ def prepare_context_info(tokenizer, context, layout, debug=True):
         missing_tail_blank = len(ctx) - eop_idx
         bias = 1 if ctx_idx == 0 else 0
         for i, offset in enumerate(tmp_offset):
-            valid_token = encoding_token_list[i]
             end_context_idx = offset[1] + char_len_cnt - bias + all_missing_tail_blank
-            if debug:
-                debug_context_id2subword_id.append({valid_token: end_context_idx})
             context_id2subword_id.append(end_context_idx)
         all_missing_tail_blank += missing_tail_blank
         char_len_cnt = eop_idx + char_len_cnt - bias
@@ -102,10 +98,9 @@ def ernie_qa_tokenize(tokenizer, question, context_encodings,
     encoding['sequence_ids'] = [None] + [0] * len(encoding['token_list']) + [None]
     encoding['word_ids'] = [None] + [0] * len(encoding['token_list']) + [None]
     encoding['bbox'] = [[0, 0, 0, 0]] * (len(encoding['input_ids']))
-
     encoding['sequence_ids'].extend([None])
     encoding['word_ids'].extend([None])
-    encoding['input_ids'].extend([0])
+    encoding['input_ids'].extend([tokenizer.cls_token_id])
     encoding['bbox'].append(cls_token_box)
     word_id = 0
     for ctx in context_encodings:
@@ -114,11 +109,35 @@ def ernie_qa_tokenize(tokenizer, question, context_encodings,
         word_id += 1
         encoding['input_ids'].extend(ctx['input_ids'])
         encoding['token_list'].extend(ctx['token_list'])
-        # encoding['offset_mapping'].extend(ctx['offset_mapping'])
         encoding['bbox'].extend(ctx['bbox'])
-    encoding['input_ids'].extend([2])
+    encoding['input_ids'].extend([tokenizer.sep_token_id])
     encoding['sequence_ids'].extend([None])
     encoding['word_ids'].extend([None])
     encoding['bbox'].append(sep_token_box)
     encoding['context_encodings'] = context_encodings
     return encoding
+
+
+def ernie_tokenize_layout(tokenizer,
+                          context,
+                          layout,
+                          labels,
+                          cls_token_box=[0, 0, 0, 0],
+                          sep_token_box=[1000, 1000, 1000, 1000]):
+    context_encodings = prepare_context_info(tokenizer, context, layout)
+    tokenized_res = dict(input_ids=[tokenizer.cls_token_id],
+                         token_list=list(),
+                         labels=[0] if labels is not None else None,
+                         bbox=[cls_token_box])
+    for idx, res in enumerate(context_encodings):
+        tokenized_res['input_ids'].extend(res['input_ids'])
+        tokenized_res['token_list'].append(res['token_list'])
+        tokenized_res['bbox'].extend(res['bbox'])
+        if labels[idx] != 0:
+            tokenized_res['labels'].extend([labels[idx]] + [0] * (len(res['token_list']) - 1))
+        else:
+            tokenized_res['labels'].extend([labels[idx]] * len(res['token_list']))
+    tokenized_res['bbox'].append(sep_token_box)
+    tokenized_res['labels'].append(0)
+    tokenized_res['input_ids'].append(tokenizer.sep_token_id)
+    return tokenized_res

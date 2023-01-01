@@ -7,9 +7,9 @@ This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/
 
 A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch/tree/main)
 
-
 **A Quick Example**
 ```python
+import torch
 from networks.modeling_erine_layout import ErnieLayoutConfig, ErnieLayoutForQuestionAnswering
 from networks.feature_extractor import ErnieFeatureExtractor
 from networks.tokenizer import ErnieLayoutTokenizer
@@ -17,30 +17,33 @@ from networks.model_util import ernie_qa_tokenize, prepare_context_info
 from PIL import Image
 
 
-pretrain_torch_model_or_path = "path/to/pretrained-model"
+pretrain_torch_model_or_path = "path/to/pretrained/mode"
+doc_imag_path = "path/to/doc/image"
+
+device = torch.device("cuda:0")
 
 # initialize tokenizer
 tokenizer = ErnieLayoutTokenizer.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
 context = ['This is an example document', 'All ocr boxes are inserted into this list']
-layout = [[381, 91, 505, 115], [738, 96, 804, 122]]
+layout = [[381, 91, 505, 115], [738, 96, 804, 122]]  # all boxes are resized between 0 - 1000
 
-# intialize feature extractor
+# initialize feature extractor
 feature_extractor = ErnieFeatureExtractor()
 
 # Tokenize context & questions
-context_encodings, = prepare_context_info(tokenizer, context, layout)
+context_encodings = prepare_context_info(tokenizer, context, layout, add_special_tokens=False)
 question = "what is it?"
 tokenized_res = ernie_qa_tokenize(tokenizer, question, context_encodings)
+tokenized_res['input_ids'] = torch.tensor([tokenized_res['input_ids']]).to(device)
+tokenized_res['bbox'] = torch.tensor([tokenized_res['bbox']]).to(device)
 
 # answer start && end index
-tokenized_res['start_positions'] = 6
-tokenized_res['end_positions'] = 12
+tokenized_res['start_positions'] = torch.tensor([6]).to(device)
+tokenized_res['end_positions'] = torch.tensor([12]).to(device)
 
-# open the image of the document
-pil_image = Image.open("/path/to/image").convert("RGB")
 
-# Process image
-tokenized_res['pixel_values'] = feature_extractor(pil_image)
+# open the image of the document and process image
+tokenized_res['pixel_values'] = feature_extractor(Image.open(doc_imag_path).convert("RGB")).unsqueeze(0).to(device)
 
 
 # initialize config
@@ -52,8 +55,8 @@ model = ErnieLayoutForQuestionAnswering.from_pretrained(
     pretrained_model_name_or_path=pretrain_torch_model_or_path,
     config=config,
 )
+model.to(device)
 
 output = model(**tokenized_res)
-
 
 ```

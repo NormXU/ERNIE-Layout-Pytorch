@@ -28,6 +28,7 @@ from .configuration_erine_layout import ErnieLayoutConfig
 from .visual_backbone import ResNetCustomized
 from transformers.modeling_outputs import (
     QuestionAnsweringModelOutput,
+    TokenClassifierOutput
 )
 
 logger = logging.get_logger(__name__)
@@ -1080,6 +1081,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
             position_ids=None,
             head_mask=None,
             labels=None,
+            **kwargs
     ):
         outputs = self.ernie_layout(
             input_ids=input_ids,
@@ -1095,30 +1097,22 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
         sequence_output = self.dropout(sequence_output)
         logits = self.classifier(sequence_output)
 
-        outputs = logits,
-
+        loss = None
         if labels is not None:
             loss_fct = CrossEntropyLoss()
 
             if attention_mask is not None:
-                active_loss = attention_mask.reshape([
-                    -1,
-                ]) == 1
-                active_logits = logits.reshape([-1,
-                                                self.num_classes])[active_loss]
-                active_labels = labels.reshape([
-                    -1,
-                ])[active_loss]
+                active_loss = attention_mask.view(-1) == 1
+                active_logits = logits.view(-1, self.num_classes)[active_loss]
+                active_labels = labels.view(-1)[active_loss]
                 loss = loss_fct(active_logits, active_labels)
             else:
-                loss = loss_fct(logits.reshape([-1, self.num_classes]),
-                                labels.reshape([
-                                    -1,
-                                ]))
+                loss = loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
 
-            outputs = (loss,) + outputs
-
-        return outputs
+        return TokenClassifierOutput(
+            loss=loss,
+            logits=logits,
+        )
 
 
 class ErnieLayoutForQuestionAnswering(ErnieLayoutPretrainedModel):
