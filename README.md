@@ -31,7 +31,7 @@ layout = [[381, 91, 505, 115], [738, 96, 804, 122]]  # all boxes are resized bet
 feature_extractor = ErnieFeatureExtractor()
 
 # Tokenize context & questions
-context_encodings = prepare_context_info(tokenizer, context, layout, add_special_tokens=False)
+context_encodings = prepare_context_info(tokenizer, context, layout)
 question = "what is it?"
 tokenized_res = ernie_qa_tokenize(tokenizer, question, context_encodings)
 tokenized_res['input_ids'] = torch.tensor([tokenized_res['input_ids']]).to(device)

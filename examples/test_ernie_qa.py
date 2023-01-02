@@ -6,8 +6,8 @@ from networks.model_util import ernie_qa_tokenize, prepare_context_info
 from PIL import Image
 
 
-pretrain_torch_model_or_path = "path/to/pretrained/mode"
-doc_imag_path = "path/to/doc/image"
+pretrain_torch_model_or_path = "/home/ysocr/data/pretrain/ernie-layoutx-base-uncased/torch_version"
+doc_imag_path = "/home/ysocr/data/cache/idiot/1.png"
 
 device = torch.device("cuda:0")
 
@@ -21,7 +21,7 @@ def main():
     feature_extractor = ErnieFeatureExtractor()
 
     # Tokenize context & questions
-    context_encodings = prepare_context_info(tokenizer, context, layout, add_special_tokens=False)
+    context_encodings = prepare_context_info(tokenizer, context, layout)
     question = "what is it?"
     tokenized_res = ernie_qa_tokenize(tokenizer, question, context_encodings)
     tokenized_res['input_ids'] = torch.tensor([tokenized_res['input_ids']]).to(device)

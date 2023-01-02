@@ -6,7 +6,7 @@ from networks.model_util import ernie_tokenize_layout
 from PIL import Image
 
 
-pretrain_torch_model_or_path = "path/to/pretrained/mode"
+pretrain_torch_model_or_path = "path/to/pretrained/model"
 doc_imag_path = "path/to/doc/image"
 
 device = torch.device("cuda:0")
