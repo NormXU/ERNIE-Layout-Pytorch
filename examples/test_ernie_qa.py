@@ -6,8 +6,8 @@ from networks.model_util import ernie_qa_tokenize, prepare_context_info
 from PIL import Image
 
 
-pretrain_torch_model_or_path = "/home/ysocr/data/pretrain/ernie-layoutx-base-uncased/torch_version"
-doc_imag_path = "/home/ysocr/data/cache/idiot/1.png"
+pretrain_torch_model_or_path = "path/to/pretrained/model"
+doc_imag_path = "path/to/doc/image"
 
 device = torch.device("cuda:0")
 
