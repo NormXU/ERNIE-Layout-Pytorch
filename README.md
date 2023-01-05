@@ -1,13 +1,13 @@
 # ERNIE-Layout-Pytorch
 
-This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) which is originally released through PaddleNLP.
+This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) which is originally released through [PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP).
 
 ``tools/convert2torch.py`` is a converting script to convert all state dicts of pretrained models for PaddlePaddle into Pytorch style. Feel free to edit it if necessary.
 
 
 A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch/tree/main)
 
-**A Quick Example**
+### A Quick Example
 ```python
 import torch
 from networks.modeling_erine_layout import ErnieLayoutConfig, ErnieLayoutForQuestionAnswering
@@ -60,3 +60,9 @@ model.to(device)
 output = model(**tokenized_res)
 
 ```
+more examples can be found in ``examples`` folder
+
+### Compare with Paddle Version
+``examples/compare_output.py`` is a script to evaluate the MSE between paddle version output and the torch version output with the same dummpy input.
+
+eps of pooled output: **0.004253871738910675**; eps of sequence output: **3.5654803762219522e-12**

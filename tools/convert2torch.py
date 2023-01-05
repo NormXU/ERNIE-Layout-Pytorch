@@ -1,14 +1,17 @@
 # -*- coding:utf-8 -*-
 # encoding=utf-8
-import os.path
-from collections import OrderedDict
 import torch
-from paddlenlp.transformers import AutoModelForQuestionAnswering
 import paddle
 import json
+import os.path
+from collections import OrderedDict
+from paddlenlp.transformers import AutoModelForQuestionAnswering
+
 
 model_name_or_path = "ernie-layoutx-base-uncased"
-pretrain_torch_model_or_path = "/path/to/ernie-layoutx/torch_version" # set the path you want to save the ernie layout model
+
+# set the path you want to save the ernie layout model
+pretrain_torch_model_or_path = "/path/to/ernie-layoutx/torch_version"
 
 
 def convert_weights():
@@ -125,7 +128,9 @@ def convert_weights():
         os.mkdir(pretrain_torch_model_or_path)
     torch.save(new_state_dict, os.path.join(pretrain_torch_model_or_path, "pytorch_model.bin"))
     with open(os.path.join(pretrain_torch_model_or_path, "config.json"), "w") as outfile:
-        outfile.write(json.dumps(model.ernie_layout.init_config))
+        config = model.ernie_layout.init_config
+        config['init_args'] = (config['init_args'][0].__dict__)
+        outfile.write(json.dumps(config))
 
 
 if __name__ == '__main__':

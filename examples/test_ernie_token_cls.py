@@ -7,7 +7,7 @@ from PIL import Image
 
 
 pretrain_torch_model_or_path = "path/to/pretrained/model"
-doc_imag_path = "path/to/doc/image"
+doc_imag_path = "./dummy_input.jpeg"
 
 device = torch.device("cuda:0")
 

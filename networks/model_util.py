@@ -121,7 +121,7 @@ def ernie_qa_tokenize(tokenizer, question, context_encodings,
 def ernie_tokenize_layout(tokenizer,
                           context,
                           layout,
-                          labels,
+                          labels=None,
                           cls_token_box=[0, 0, 0, 0],
                           sep_token_box=[1000, 1000, 1000, 1000]):
     context_encodings = prepare_context_info(tokenizer, context, layout)
@@ -133,11 +133,13 @@ def ernie_tokenize_layout(tokenizer,
         tokenized_res['input_ids'].extend(res['input_ids'])
         tokenized_res['token_list'].append(res['token_list'])
         tokenized_res['bbox'].extend(res['bbox'])
-        if labels[idx] != 0:
-            tokenized_res['labels'].extend([labels[idx]] + [0] * (len(res['token_list']) - 1))
-        else:
-            tokenized_res['labels'].extend([labels[idx]] * len(res['token_list']))
+        if labels:
+            if labels[idx] != 0:
+                tokenized_res['labels'].extend([labels[idx]] + [0] * (len(res['token_list']) - 1))
+            else:
+                tokenized_res['labels'].extend([labels[idx]] * len(res['token_list']))
     tokenized_res['bbox'].append(sep_token_box)
-    tokenized_res['labels'].append(0)
     tokenized_res['input_ids'].append(tokenizer.sep_token_id)
+    if labels:
+        tokenized_res['labels'].append(0)
     return tokenized_res
