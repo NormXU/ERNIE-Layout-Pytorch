@@ -810,11 +810,7 @@ class PretrainedTokenizer(PreTrainedTokenizerBase):
         first_ids = get_input_ids(text)
         second_ids = get_input_ids(text_pair) if text_pair is not None else None
 
-        if return_offsets_mapping:
-            kwargs['text'] = text
-            kwargs['text_pair'] = text_pair
-
-        return self.prepare_for_model(
+        encoded_inputs = self.prepare_for_model(
             first_ids,
             pair_ids=second_ids,
             add_special_tokens=add_special_tokens,
@@ -834,6 +830,37 @@ class PretrainedTokenizer(PreTrainedTokenizerBase):
             return_length=return_length,
             verbose=verbose,
             **kwargs)
+
+        if return_offsets_mapping:
+            pair = bool(second_ids is not None)
+            len_ids = len(first_ids)
+            len_pair_ids = len(second_ids) if pair else 0
+            total_len = len_ids + len_pair_ids + (
+                self.num_special_tokens_to_add(pair=pair) if add_special_tokens else 0)
+
+            token_offset_mapping = self.get_offset_mapping(text)
+            token_pair_offset_mapping = self.get_offset_mapping(text_pair) if text_pair is not None else None
+            if max_length and total_len > max_length:
+                token_offset_mapping, token_pair_offset_mapping, _ = self.truncate_sequences(
+                    token_offset_mapping,
+                    pair_ids=token_pair_offset_mapping,
+                    num_tokens_to_remove=total_len - max_length,
+                    truncation_strategy=truncation_strategy,
+                    stride=stride,
+                )
+            if add_special_tokens:
+                offset_mapping = self.build_offset_mapping_with_special_tokens(
+                    token_offset_mapping, token_pair_offset_mapping
+                )
+            else:
+                offset_mapping = (
+                    token_offset_mapping + token_pair_offset_mapping
+                    if token_pair_offset_mapping
+                    else token_offset_mapping
+                )
+            encoded_inputs["offset_mapping"] = offset_mapping
+
+        return encoded_inputs
 
     def _batch_encode_plus(
             self,
@@ -1232,5 +1259,3 @@ class PretrainedTokenizer(PreTrainedTokenizerBase):
             return clean_text
         else:
             return text
-
-
