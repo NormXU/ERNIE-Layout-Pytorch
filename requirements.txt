@@ -1,4 +1,5 @@
 editdistance
+sentencepiece
 textdistance
 torch
 torchvision
