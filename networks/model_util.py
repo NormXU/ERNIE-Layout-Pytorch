@@ -122,6 +122,7 @@ def ernie_tokenize_layout(tokenizer,
                           context,
                           layout,
                           labels=None,
+                          label_pad_token_id=-100,
                           cls_token_box=[0, 0, 0, 0],
                           sep_token_box=[1000, 1000, 1000, 1000]):
     context_encodings = prepare_context_info(tokenizer, context, layout)
@@ -135,7 +136,7 @@ def ernie_tokenize_layout(tokenizer,
         tokenized_res['bbox'].extend(res['bbox'])
         if labels:
             if labels[idx] != 0:
-                tokenized_res['labels'].extend([labels[idx]] + [0] * (len(res['token_list']) - 1))
+                tokenized_res['labels'].extend([labels[idx]] + [label_pad_token_id] * (len(res['token_list']) - 1))
             else:
                 tokenized_res['labels'].extend([labels[idx]] * len(res['token_list']))
     tokenized_res['bbox'].append(sep_token_box)
