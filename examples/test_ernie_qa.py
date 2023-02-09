@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from networks.modeling_erine_layout import ErnieLayoutConfig, ErnieLayoutForQuestionAnswering
 from networks.feature_extractor import ErnieFeatureExtractor
 from networks.tokenizer import ErnieLayoutTokenizer
@@ -46,7 +47,11 @@ def main():
     model.to(device)
 
     output = model(**tokenized_res)
-
+    
+    start_max = torch.argmax(F.softmax(output.start_logits, dim = -1))
+    end_max = torch.argmax(F.softmax(output.end_logits, dim = -1)) + 1 ## add one ##because of python list indexing
+    answer = tokenizer.decode(tokenized_res["input_ids"][0][start_max : end_max])
+    print(answer)
 
 if __name__ == '__main__':
     main()
