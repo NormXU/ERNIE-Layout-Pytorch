@@ -19,8 +19,8 @@ from networks.model_util import ernie_qa_processing
 from networks import ErnieLayoutConfig, ErnieLayoutForQuestionAnswering, ErnieLayoutImageProcessor, \
     ERNIELayoutProcessor, ErnieLayoutTokenizerFast
 
-pretrain_torch_model_or_path = "/home/ysocr/data/pretrain/norm_lab/ERNIE-Layout-Pytorch"
-doc_imag_path = "./dummy_input.jpeg"
+pretrain_torch_model_or_path = "Norm/ERNIE-Layout-Pytorch"
+doc_imag_path = "/path/to/dummy_input.jpeg"
 
 device = torch.device("cuda:0")
 
