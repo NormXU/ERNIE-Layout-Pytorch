@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-# email:xunuo@datagrand.com
 # create: @time: 2/16/23 16:46
+import os
 from transformers import XLNetTokenizerFast
 
 
@@ -21,6 +21,8 @@ class ErnieLayoutTokenizerFast(XLNetTokenizerFast):
                  additional_special_tokens=["<eop>", "<eod>"],
                  **kwargs
                  ):
+        pretrained_base_dir = os.path.dirname(tokenizer_file)
+        vocab_file = os.path.join(pretrained_base_dir, vocab_file)
         super().__init__(vocab_file=vocab_file,
                          tokenizer_file=tokenizer_file,
                          do_lower_case=do_lower_case,

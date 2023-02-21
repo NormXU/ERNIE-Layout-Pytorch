@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-# email:xunuo@datagrand.com
 # create: @time: 2/16/23 13:56
 # coding=utf-8
 # Copyright 2022 The HuggingFace Inc. team.
