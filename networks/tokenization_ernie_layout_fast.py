@@ -21,8 +21,7 @@ class ErnieLayoutTokenizerFast(XLNetTokenizerFast):
                  additional_special_tokens=["<eop>", "<eod>"],
                  **kwargs
                  ):
-        pretrained_base_dir = os.path.dirname(tokenizer_file)
-        vocab_file = os.path.join(pretrained_base_dir, vocab_file)
+        vocab_file = os.path.join(kwargs["name_or_path"], vocab_file)
         super().__init__(vocab_file=vocab_file,
                          tokenizer_file=tokenizer_file,
                          do_lower_case=do_lower_case,
