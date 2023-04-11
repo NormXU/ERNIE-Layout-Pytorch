@@ -22,7 +22,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from transformers.utils import logging
-from transformers.pytorch_utils import torch_int_div
 from transformers.modeling_utils import PreTrainedModel
 from .configuration_erine_layout import ErnieLayoutConfig
 from .visual_backbone import ResNetCustomized
@@ -670,7 +669,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
         return embeddings
 
     def _calc_visual_bbox(self, image_feature_pool_shape, bbox, device, final_shape):
-        visual_bbox_x = torch_int_div(
+        visual_bbox_x = torch.div(
             torch.arange(
                 0,
                 1000 * (image_feature_pool_shape[1] + 1),
@@ -679,8 +678,9 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
                 dtype=bbox.dtype,
             ),
             self.config.image_feature_pool_shape[1],
+            rounding_mode="floor",
         )
-        visual_bbox_y = torch_int_div(
+        visual_bbox_y = torch.div(
             torch.arange(
                 0,
                 1000 * (self.config.image_feature_pool_shape[0] + 1),
@@ -689,6 +689,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
                 dtype=bbox.dtype,
             ),
             self.config.image_feature_pool_shape[0],
+            rounding_mode="floor",
         )
         visual_bbox = torch.stack(
             [
@@ -848,11 +849,11 @@ class ErnieLayoutForSequenceClassification(ErnieLayoutPretrainedModel):
 
     def __init__(self, config):
         super(ErnieLayoutForSequenceClassification, self).__init__(config)
-        self.num_classes = config.num_labels
+        self.num_classes = config.num_classes
         self.ernie_layout = ErnieLayoutModel(config)
 
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size * 3, config.num_labels)
+        self.classifier = nn.Linear(config.hidden_size * 3, config.num_classes)
         self.init_weights()
 
     def get_input_embeddings(self):
@@ -1052,7 +1053,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
         self.num_classes = config.num_classes
         self.ernie_layout = ErnieLayoutModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.classifier = nn.Linear(config.hidden_size, config.num_classes)
         self.init_weights()
 
     def get_input_embeddings(self):
@@ -1123,7 +1124,7 @@ class ErnieLayoutForQuestionAnswering(ErnieLayoutPretrainedModel):
         self.ernie_layout = ErnieLayoutModel(config)
         self.has_visual_segment_embedding = config.has_visual_segment_embedding
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
+        self.qa_outputs = nn.Linear(config.hidden_size, config.num_classes)
         self.init_weights()
 
     def get_input_embeddings(self):
