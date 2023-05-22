@@ -3,7 +3,7 @@
 This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) which is originally released through [PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP).
 
 
-A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch/tree/main). The model is translated from [PaddlePaddle/ernie-layoutx-base-uncased](https://huggingface.co/PaddlePaddle/ernie-layoutx-base-uncased) with ``tools/convert2torch.py``. It is a script to convert all state dicts of pretrained models for PaddlePaddle into Pytorch style. Feel free to edit it if necessary.
+A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch/tree/main). The model is translated from [PaddlePaddle/ernie-layoutx-base-uncased](https://huggingface.co/PaddlePaddle/ernie-layoutx-base-uncased) with ``tools/convert2torch.py`` scripts. This script converts all state dictionaries of pretrained models for PaddlePaddle into the PyTorch style. Please feel free to make any necessary edits.
 
 
 ### NEWs
@@ -76,3 +76,8 @@ more examples can be found in ``examples`` folder
 ``examples/compare_output.py`` is a script to evaluate the MSE between paddle version output and the torch version output with the same dummpy input.
 
 eps of pooled output: **0.00417756475508213**; eps of sequence output: **3.1264463674213205e-12**
+
+
+<hr>
+
+**If you find this repository helpful, please consider leaving a star.😊**
