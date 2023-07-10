@@ -834,11 +834,11 @@ class ErnieLayoutForSequenceClassification(ErnieLayoutPretrainedModel):
 
     def __init__(self, config):
         super(ErnieLayoutForSequenceClassification, self).__init__(config)
-        self.num_classes = config.num_labels
+        self.num_classes = config.num_classes
         self.ernie_layout = ErnieLayoutModel(config)
 
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size * 3, config.num_labels)
+        self.classifier = nn.Linear(config.hidden_size * 3, config.num_classes)
         self.init_weights()
 
     def get_input_embeddings(self):
@@ -1038,7 +1038,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
         self.num_classes = config.num_classes
         self.ernie_layout = ErnieLayoutModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.classifier = nn.Linear(config.hidden_size, config.num_classes)
         self.init_weights()
 
     def get_input_embeddings(self):
@@ -1109,7 +1109,7 @@ class ErnieLayoutForQuestionAnswering(ErnieLayoutPretrainedModel):
         self.ernie_layout = ErnieLayoutModel(config)
         self.has_visual_segment_embedding = config.has_visual_segment_embedding
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
+        self.qa_outputs = nn.Linear(config.hidden_size, config.num_classes)
         self.init_weights()
 
     def get_input_embeddings(self):
