@@ -1,6 +1,6 @@
 editdistance
 sentencepiece
 textdistance
-torch
-torchvision
-transformers==4.24.0
+torch>=2.0.0
+torchvision>=0.15.1
+transformers==4.28.1

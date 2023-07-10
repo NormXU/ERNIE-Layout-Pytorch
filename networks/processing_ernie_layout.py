@@ -1,9 +1,4 @@
-# -*- coding:utf-8 -*-
-# email:xunuo@datagrand.com
-# create: @time: 2/16/23 13:56
 # coding=utf-8
-# Copyright 2022 The HuggingFace Inc. team.
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Processor class for LayoutLMv3.
+Copied from Processor class for LayoutLMv3.
 """
 
 import warnings
@@ -27,7 +22,25 @@ from transformers.tokenization_utils_base import BatchEncoding, PaddingStrategy,
 from transformers.utils import TensorType
 
 
-class ERNIELayoutProcessor(ProcessorMixin):
+class ErnieLayoutProcessor(ProcessorMixin):
+    r"""
+    Constructs an ErnieLayout processor which combines an ErnieLayout image processor and an ErnieLayout tokenizer into a
+    single processor.
+
+    [`ErnieLayoutImageProcessor`] offers all the functionalities you need to prepare data for the model.
+
+    It first uses [`ErnieLayoutImageProcessor`] to resize and normalize document images, and optionally applies OCR to
+    get words and normalized bounding boxes. These are then provided to [`LayoutLMv3Tokenizer`] or
+    [`LayoutLMv3TokenizerFast`], which turns the words and bounding boxes into token-level `input_ids`,
+    `attention_mask`, `token_type_ids`, `bbox`. Optionally, one can provide integer `word_labels`, which are turned
+    into token-level `labels` for token classification tasks (such as FUNSD, CORD).
+
+    Args:
+        image_processor (`ErnieLayoutImageProcessor`):
+            An instance of [`LayoutLMv3ImageProcessor`]. The image processor is a required input.
+        tokenizer (`XLNetTokenizer` or `XLNetTokenizerFast`):
+            An instance of [`XLNetTokenizer`] or [`XLNetTokenizerFast`]. The tokenizer is a required input.
+    """
     attributes = ["image_processor", "tokenizer"]
     image_processor_class = "ErnieLayoutImageProcessor"
     tokenizer_class = ("XLNetTokenizer", "XLNetTokenizerFast")
@@ -46,6 +59,7 @@ class ERNIELayoutProcessor(ProcessorMixin):
             raise ValueError("You need to specify an `image_processor`.")
         if tokenizer is None:
             raise ValueError("You need to specify a `tokenizer`.")
+
         self.image_processor = image_processor
         self.tokenizer = tokenizer
 
@@ -54,6 +68,8 @@ class ERNIELayoutProcessor(ProcessorMixin):
         images,
         text: Union[TextInput, PreTokenizedInput, List[TextInput], List[PreTokenizedInput]] = None,
         text_pair: Optional[Union[PreTokenizedInput, List[PreTokenizedInput]]] = None,
+        boxes: Union[List[List[int]], List[List[List[int]]]] = None,
+        word_labels: Optional[Union[List[int], List[List[int]]]] = None,
         add_special_tokens: bool = True,
         padding: Union[bool, str, PaddingStrategy] = False,
         truncation: Union[bool, str, TruncationStrategy] = None,
@@ -68,8 +84,29 @@ class ERNIELayoutProcessor(ProcessorMixin):
         return_length: bool = False,
         verbose: bool = True,
         return_tensors: Optional[Union[str, TensorType]] = None,
-        **kwargs
+        **kwargs,
     ) -> BatchEncoding:
+        """
+        This method first forwards the `images` argument to [`~LayoutLMv3ImageProcessor.__call__`]. In case
+        [`LayoutLMv3ImageProcessor`] was initialized with `apply_ocr` set to `True`, it passes the obtained words and
+        bounding boxes along with the additional arguments to [`~LayoutLMv3Tokenizer.__call__`] and returns the output,
+        together with resized and normalized `pixel_values`. In case [`LayoutLMv3ImageProcessor`] was initialized with
+        `apply_ocr` set to `False`, it passes the words (`text`/``text_pair`) and `boxes` specified by the user along
+        with the additional arguments to [`~LayoutLMv3Tokenizer.__call__`] and returns the output, together with
+        resized and normalized `pixel_values`.
+
+        Please refer to the docstring of the above two methods for more information.
+        """
+        # verify input
+        if self.image_processor.apply_ocr and (boxes is not None):
+            raise ValueError(
+                "You cannot provide bounding boxes if you initialized the image processor with apply_ocr set to True."
+            )
+
+        if self.image_processor.apply_ocr and (word_labels is not None):
+            raise ValueError(
+                "You cannot provide word labels if you initialized the image processor with apply_ocr set to True."
+            )
 
         # first, apply the image processor
         features = self.image_processor(images=images, return_tensors=return_tensors)
@@ -83,6 +120,8 @@ class ERNIELayoutProcessor(ProcessorMixin):
         encoded_inputs = self.tokenizer(
             text=text if text is not None else features["words"],
             text_pair=text_pair if text_pair is not None else None,
+            boxes=boxes if boxes is not None else features["boxes"],
+            word_labels=word_labels,
             add_special_tokens=add_special_tokens,
             padding=padding,
             truncation=truncation,

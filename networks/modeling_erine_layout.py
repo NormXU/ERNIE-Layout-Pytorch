@@ -1,7 +1,5 @@
 # -*- coding:utf-8 -*-
-# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
-# Copyright 2021 Microsoft Research and The HuggingFace Inc. team. All rights reserved.
-#
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,14 +13,12 @@
 # limitations under the License.
 """ Modeling classes for ErnieLayout model."""
 
-import copy
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
+from torch.nn import CrossEntropyLoss
 from transformers.utils import logging
-from transformers.pytorch_utils import torch_int_div
 from transformers.modeling_utils import PreTrainedModel
 from .configuration_erine_layout import ErnieLayoutConfig
 from .visual_backbone import ResNetCustomized
@@ -276,8 +272,6 @@ class ErnieLayoutSelfAttention(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            encoder_hidden_states=None,
-            encoder_attention_mask=None,
             past_key_value=None,
             output_attentions=False,
             rel_pos=None,
@@ -330,8 +324,6 @@ class ErnieLayoutAttention(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            encoder_hidden_states=None,
-            encoder_attention_mask=None,
             past_key_value=None,
             output_attentions=False,
             rel_pos=None,
@@ -342,8 +334,6 @@ class ErnieLayoutAttention(nn.Module):
             hidden_states,
             attention_mask,
             head_mask,
-            encoder_hidden_states,
-            encoder_attention_mask,
             past_key_value,
             output_attentions,
             rel_pos=rel_pos,
@@ -423,8 +413,6 @@ class ErnieLayoutEncoder(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            encoder_hidden_states=None,
-            encoder_attention_mask=None,
             past_key_values=None,
             output_attentions=False,
             output_hidden_states=False,
@@ -457,8 +445,6 @@ class ErnieLayoutEncoder(nn.Module):
                 hidden_states,
                 attention_mask,
                 layer_head_mask,
-                encoder_hidden_states,
-                encoder_attention_mask,
                 past_key_value,
                 output_attentions,
                 rel_pos=rel_pos,
@@ -525,8 +511,6 @@ class ErnieLayoutLayer(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            encoder_hidden_states=None,
-            encoder_attention_mask=None,
             past_key_value=None,
             output_attentions=False,
             rel_pos=None,
@@ -670,7 +654,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
         return embeddings
 
     def _calc_visual_bbox(self, image_feature_pool_shape, bbox, device, final_shape):
-        visual_bbox_x = torch_int_div(
+        visual_bbox_x = torch.div(
             torch.arange(
                 0,
                 1000 * (image_feature_pool_shape[1] + 1),
@@ -679,8 +663,9 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
                 dtype=bbox.dtype,
             ),
             self.config.image_feature_pool_shape[1],
+            rounding_mode="floor",
         )
-        visual_bbox_y = torch_int_div(
+        visual_bbox_y = torch.div(
             torch.arange(
                 0,
                 1000 * (self.config.image_feature_pool_shape[0] + 1),
@@ -689,6 +674,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
                 dtype=bbox.dtype,
             ),
             self.config.image_feature_pool_shape[0],
+            rounding_mode="floor",
         )
         visual_bbox = torch.stack(
             [
@@ -753,7 +739,7 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
                 inputs_embeds=None,
                 output_hidden_states=False,
                 output_attentions=False,
-                return_dict=None, ):
+                ):
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
