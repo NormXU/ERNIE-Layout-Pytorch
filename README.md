@@ -8,6 +8,7 @@ A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https:/
 
 ### NEWs
 **July 11, 2023** - Rewrite the processor for end-to-end preprocessing on bbox, question and label 
+
 **Feb 16, 2023** - Make the tokenizer more huggingface-like with XLNetTokenizer following the advice from [maxjeblick](https://github.com/NormXU/ERNIE-Layout-Pytorch/issues/5). If you pull the latest codes and then find an error when loading the pretrained models, please replace ``"model_type": "xlnet"`` in corresponding ``config.json``. Also, you need to remove ``max_position_embeddings`` in ``config.json``. Or you can simply pull the latest configuration file from huggingface
 
 ### A Quick Example
