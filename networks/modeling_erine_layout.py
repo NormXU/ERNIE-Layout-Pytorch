@@ -272,7 +272,6 @@ class ErnieLayoutSelfAttention(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            past_key_value=None,
             output_attentions=False,
             rel_pos=None,
             rel_2d_pos=None,
@@ -324,7 +323,6 @@ class ErnieLayoutAttention(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            past_key_value=None,
             output_attentions=False,
             rel_pos=None,
             rel_2d_pos=None,
@@ -334,7 +332,6 @@ class ErnieLayoutAttention(nn.Module):
             hidden_states,
             attention_mask,
             head_mask,
-            past_key_value,
             output_attentions,
             rel_pos=rel_pos,
             rel_2d_pos=rel_2d_pos,
@@ -413,7 +410,6 @@ class ErnieLayoutEncoder(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            past_key_values=None,
             output_attentions=False,
             output_hidden_states=False,
             bbox=None,
@@ -435,8 +431,6 @@ class ErnieLayoutEncoder(nn.Module):
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
             layer_head_mask = head_mask[i] if head_mask is not None else None
-            past_key_value = past_key_values[
-                i] if past_key_values is not None else None
 
             # gradient_checkpointing is set as False here so we remove some codes here
             hidden_save["input_attention_mask"] = attention_mask
@@ -445,7 +439,6 @@ class ErnieLayoutEncoder(nn.Module):
                 hidden_states,
                 attention_mask,
                 layer_head_mask,
-                past_key_value,
                 output_attentions,
                 rel_pos=rel_pos,
                 rel_2d_pos=rel_2d_pos,
@@ -511,20 +504,15 @@ class ErnieLayoutLayer(nn.Module):
             hidden_states,
             attention_mask=None,
             head_mask=None,
-            past_key_value=None,
             output_attentions=False,
             rel_pos=None,
             rel_2d_pos=None,
     ):
-        # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
-        self_attn_past_key_value = past_key_value[:
-                                                  2] if past_key_value is not None else None
         self_attention_outputs = self.attention(
             hidden_states,
             attention_mask,
             head_mask,
             output_attentions=output_attentions,
-            past_key_value=self_attn_past_key_value,
             rel_pos=rel_pos,
             rel_2d_pos=rel_2d_pos,
         )
@@ -1067,7 +1055,6 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
             position_ids=None,
             head_mask=None,
             labels=None,
-            **kwargs
     ):
         outputs = self.ernie_layout(
             input_ids=input_ids,
@@ -1138,7 +1125,7 @@ class ErnieLayoutForQuestionAnswering(ErnieLayoutPretrainedModel):
                 head_mask=None,
                 start_positions=None,
                 end_positions=None,
-                **kwargs):
+                ):
         outputs = self.ernie_layout(
             input_ids=input_ids,
             bbox=bbox,

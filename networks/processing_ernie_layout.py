@@ -36,7 +36,7 @@ class ErnieLayoutProcessor(ProcessorMixin):
     into token-level `labels` for token classification tasks (such as FUNSD, CORD).
 
     Args:
-        image_processor (`ErnieLayoutImageProcessor`):
+        image_processor (`LayoutLMv3ImageProcessor`):
             An instance of [`LayoutLMv3ImageProcessor`]. The image processor is a required input.
         tokenizer (`XLNetTokenizer` or `XLNetTokenizerFast`):
             An instance of [`XLNetTokenizer`] or [`XLNetTokenizerFast`]. The tokenizer is a required input.
@@ -92,7 +92,7 @@ class ErnieLayoutProcessor(ProcessorMixin):
         bounding boxes along with the additional arguments to [`~LayoutLMv3Tokenizer.__call__`] and returns the output,
         together with resized and normalized `pixel_values`. In case [`LayoutLMv3ImageProcessor`] was initialized with
         `apply_ocr` set to `False`, it passes the words (`text`/``text_pair`) and `boxes` specified by the user along
-        with the additional arguments to [`~LayoutLMv3Tokenizer.__call__`] and returns the output, together with
+        with the additional arguments to [`~XLNetTokenizerFast.__call__`] and returns the output, together with
         resized and normalized `pixel_values`.
 
         Please refer to the docstring of the above two methods for more information.
