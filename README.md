@@ -7,6 +7,9 @@ A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https:/
 
 
 ### NEWs
+**Aug 7, 2023** - Support longer max input sequence length with RoPE and Alibi
+
+
 **July 11, 2023** - Rewrite the processor for end-to-end preprocessing on bbox, question and label 
 
 **Feb 16, 2023** - Make the tokenizer more huggingface-like with XLNetTokenizer following the advice from [maxjeblick](https://github.com/NormXU/ERNIE-Layout-Pytorch/issues/5). If you pull the latest codes and then find an error when loading the pretrained models, please replace ``"model_type": "xlnet"`` in corresponding ``config.json``. Also, you need to remove ``max_position_embeddings`` in ``config.json``. Or you can simply pull the latest configuration file from huggingface
@@ -67,3 +70,15 @@ more examples can be found in ``examples`` folder
 ``examples/compare_output.py`` is a script to evaluate the MSE between paddle version output and the torch version output with the same dummpy input.
 
 eps of pooled output: **0.00417756475508213**; eps of sequence output: **3.1264463674213205e-12**
+
+### Extend the max sequence length over 512
+The publicly available ernie-layoutx-base-uncased model is pretrained with a max sequence length of `512`. However, in most practical use cases, there is a need for longer sequence inputs capable of accommodating more tokens. several effective extrapolation/interpolation methods have been proposed to extend the context length for decoder-only architectures without the need for costly pretraining. These algorithms have demonstrated their applicability for encoder-only architectures as well, including ERNIE-Layout.
+
+``exErnieLayoutForTokenClassification`` is implemented with RoPE, ALiBi and DynamicNTKScaleRope.
+You can find an example of these implementations in `examples/test_ernie_token_cls.py`
+and test it by seting ``model_type = exErnieLayoutForTokenClassification``
+
+```python
+run_token_cls_with_ernie(model_type="exErnieLayoutForTokenClassification")
+```
+Empirically, you can extend the sequence length not more than 4 times without significant performance degradation on downstream tasks, which means we can have a model with `max_seq_length = 2048` **for free**!! 

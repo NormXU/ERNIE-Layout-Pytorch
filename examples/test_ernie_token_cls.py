@@ -3,14 +3,14 @@
 from PIL import Image
 from transformers.models.layoutlmv3 import LayoutLMv3ImageProcessor
 
-from networks import ErnieLayoutConfig, ErnieLayoutForTokenClassification, ErnieLayoutTokenizerFast, \
-    ErnieLayoutProcessor
+from networks import ErnieLayoutConfig, ErnieLayoutForTokenClassification, exErnieLayoutForTokenClassification, \
+    ErnieLayoutTokenizerFast, ErnieLayoutProcessor, set_config_for_extrapolation
 
 pretrain_torch_model_or_path = "Norm/ERNIE-Layout-Pytorch"
 doc_imag_path = "./dummy_input.jpeg"
 
 
-def main():
+def run_token_cls_with_ernie(model_type="ErnieLayoutForTokenClassification"):
     context = ['This is an example segment', 'All ocr boxes are inserted into this list']
     layout = [[381, 91, 505, 115], [738, 96, 804, 122]]  # make sure all boxes are normalized between 0 - 1000
     labels = [1, 0]
@@ -29,8 +29,11 @@ def main():
     config = ErnieLayoutConfig.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
     config.num_classes = 2  # num of classes
 
+    if model_type == "exErnieLayoutForTokenClassification":
+        set_config_for_extrapolation(config)
+
     # initialize ERNIE for TokenClassification
-    model = ErnieLayoutForTokenClassification.from_pretrained(
+    model = eval(model_type).from_pretrained(
         pretrained_model_name_or_path=pretrain_torch_model_or_path,
         config=config,
     )
@@ -41,4 +44,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    model_type = "ErnieLayoutForTokenClassification" # "exErnieLayoutForTokenClassification"
+    run_token_cls_with_ernie(model_type=model_type)
