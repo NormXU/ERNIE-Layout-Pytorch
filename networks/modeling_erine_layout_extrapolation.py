@@ -200,20 +200,53 @@ class RotaryEmbedding(torch.nn.Module):
             self.sin_cached[:, :, :seq_len, ...].to(dtype=x.dtype),
         )
 
+class MixedNTKScalingRotaryEmbedding(RotaryEmbedding):
+    """
+        copied from LLamaRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla
+        'fix_based' is inspired from  https://normxu.github.io/Rethinking-Rotary-Position-Embedding-2/
+    """
 
-class DynamicNTKScalingRotaryEmbedding(RotaryEmbedding):
-    """copied from LLamaRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla"""
-
-    def __init__(self, dim, max_position_embeddings=2048, base=10000, device=None, scaling_factor=1.0):
-        self.scaling_factor = scaling_factor
+    def __init__(self, dim, max_position_embeddings=2048, base=10000, b=0.75, device=None):
+        self.b = b
         super().__init__(dim, max_position_embeddings, base, device)
 
     def _set_cos_sin_cache(self, seq_len, device, dtype):
         if seq_len > self.max_position_embeddings:
-            base = self.base * (
-                    (self.scaling_factor * seq_len / self.max_position_embeddings) - (self.scaling_factor - 1)
-            ) ** (self.dim / (self.dim - 2))
+            k = seq_len / self.max_position_embeddings
+            a = np.log(k) / (self.dim // 2 ** self.b)
+            inv_freq = 1.0 / (self.base ** (torch.arange(0, self.dim, 2).float().to(device) / self.dim))
+            inv_freq /= (a * torch.arange(1, self.dim // 2 + 1).float().to(device) ** self.b).exp()
+            self.register_buffer("inv_freq", inv_freq)
+
+        t = torch.arange(seq_len, device=device, dtype=self.inv_freq.dtype)
+
+        freqs = torch.einsum("i,j->ij", t, self.inv_freq)
+        # Different from paper, but it uses a different permutation in order to obtain the same calculation
+        emb = torch.cat((freqs, freqs), dim=-1)
+        self.register_buffer("cos_cached", emb.cos()[None, None, :, :].to(dtype), persistent=False)
+        self.register_buffer("sin_cached", emb.sin()[None, None, :, :].to(dtype), persistent=False)
+
+class DynamicNTKScalingRotaryEmbedding(RotaryEmbedding):
+    """
+        copied from LLamaRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla
+        'fix_based' is inspired from  https://normxu.github.io/Rethinking-Rotary-Position-Embedding-2/
+    """
+
+    def __init__(self, dim, max_position_embeddings=2048, base=10000, device=None, scaling_factor=1.0, fix_base=False):
+        self.scaling_factor = scaling_factor
+        self.fix_base = fix_base
+        super().__init__(dim, max_position_embeddings, base, device)
+
+    def _set_cos_sin_cache(self, seq_len, device, dtype):
+        if seq_len > self.max_position_embeddings:
+            lamda_factor = (
+                                   (self.scaling_factor * seq_len / self.max_position_embeddings) - (
+                                       self.scaling_factor - 1)
+                           ) ** (self.dim / (self.dim - 2))
+            base = self.base * lamda_factor
             inv_freq = 1.0 / (base ** (torch.arange(0, self.dim, 2).float().to(device) / self.dim))
+            if self.fix_base:
+                inv_freq = inv_freq * 1.0 / lamda_factor
             self.register_buffer("inv_freq", inv_freq)
 
         t = torch.arange(seq_len, device=device, dtype=self.inv_freq.dtype)
@@ -513,7 +546,13 @@ class ErnieLayoutSelfAttention(nn.Module):
             elif scaling_type == "dynamic":
                 rotary_emb = DynamicNTKScalingRotaryEmbedding(
                     self.attention_head_size, max_position_embeddings=max_position_embeddings,
-                    scaling_factor=scaling_factor
+                    scaling_factor=scaling_factor,
+                    fix_base=config.fix_base
+                )
+            elif scaling_type == "mixed_base":
+                rotary_emb = MixedNTKScalingRotaryEmbedding(
+                    self.attention_head_size, max_position_embeddings=max_position_embeddings,
+                    b=config.b
                 )
             else:
                 raise ValueError(f"Unknown RoPE scaling type {scaling_type}")
