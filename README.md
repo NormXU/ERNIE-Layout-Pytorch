@@ -72,7 +72,7 @@ more examples can be found in ``examples`` folder
 eps of pooled output: **0.00417756475508213**; eps of sequence output: **3.1264463674213205e-12**
 
 ## Extend the max sequence length over 512
-The publicly available ernie-layoutx-base-uncased model is pretrained with a max sequence length of $$512$$. However, in most practical use cases, there is a need for longer sequence inputs capable of accommodating more tokens. several effective extrapolation/interpolation methods have been proposed to extend the context length for decoder-only architectures without the need for costly pretraining. These algorithms have demonstrated their applicability for encoder-only architectures as well, including ERNIE-Layout.
+The publicly available ernie-layoutx-base-uncased model is pretrained with a max sequence length of $512$. However, in most practical use cases, there is a need for longer sequence inputs capable of accommodating more tokens. several effective extrapolation/interpolation methods have been proposed to extend the context length for decoder-only architectures without the need for costly pretraining. These algorithms have demonstrated their applicability for encoder-only architectures as well, including ERNIE-Layout.
 
 ``exErnieLayoutForTokenClassification`` is implemented with RoPE, ALiBi and DynamicNTKScaleRope.
 You can find an example of these implementations in `examples/test_ernie_token_cls.py`
@@ -84,7 +84,7 @@ run_token_cls_with_ernie(model_type="exErnieLayoutForTokenClassification")
 Empirically, you can extend the sequence length not more than 4 times without significant performance degradation on downstream tasks, which means we can have a model with `max_seq_length = 2048` **for free**!! 
 
 ### experiments
-Train ``ErnieLayoutForTokenClassification`` with $$512$$ input length, infer with $$1024$$ input length
+Train ``ErnieLayoutForTokenClassification`` with $512$ input length, infer with $1024$ input length
 
 |                          | seq_len  | f1          | note         |
 |--------------------------|----------|-------------|--------------|
