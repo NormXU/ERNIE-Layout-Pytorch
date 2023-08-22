@@ -86,18 +86,18 @@ Empirically, you can extend the sequence length not more than 4 times without si
 ### experiments
 Train ``ErnieLayoutForTokenClassification`` with $512$ input length, infer with $1024$ input length
 
-|                          | seq_len  | f1          | note         |
-|--------------------------|----------|-------------|--------------|
-| baseline                 | 512      | 0.94784     | vanilla RoPE |
-| NTKRoPE                  | 1024     | 0.9209      | scale=1.0    |
-| NTKRoPE-$$\log n$$       | 1024     | 0.92860     | scale=1.0    |
-| NTKRoPE                  | 1024     | 0.9264      | scale=2.0    |
-| NTKRoPE-logn             | 1024     | 0.92782     | scale=2.0    |
-| NTKRoPE-fixed            | 1024     | 0.87245     | scale=1.0    |
-| NTKRoPE-fixed-$$\log n$$ | 1024     | 0.8666      | scale=1.0    |
-| mixed-based              | 1024     | 0.938037    | b=0.75       |
-| mixed-based-$$\log n$$   | 1024     | 0.9379      | b=0.75       |
-| **mixed-based**          | **1024** | **0.94085** | **b=0.6**    |
+|                      | seq_len  | f1          | note         |
+|----------------------|----------|-------------|--------------|
+| baseline             | 512      | 0.94784     | vanilla RoPE |
+| NTKRoPE              | 1024     | 0.9209      | scale=1.0    |
+| NTKRoPE-$\log n$     | 1024     | 0.92860     | scale=1.0    |
+| NTKRoPE              | 1024     | 0.9264      | scale=2.0    |
+| NTKRoPE-logn         | 1024     | 0.92782     | scale=2.0    |
+| NTKRoPE-fixed        | 1024     | 0.87245     | scale=1.0    |
+| NTKRoPE-fixed-$\log n$ | 1024     | 0.8666      | scale=1.0    |
+| mixed-based          | 1024     | 0.938037    | b=0.75       |
+| mixed-based-$\log n$ | 1024     | 0.9379      | b=0.75       |
+| **mixed-based**      | **1024** | **0.94085** | **b=0.6**    |
 
 NTKRoPE with a mixed-base can optimize performance for longer sequence lengths in sequence labeling tasks
 
