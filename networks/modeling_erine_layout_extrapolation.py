@@ -604,10 +604,10 @@ class ErnieLayoutSelfAttention(nn.Module):
             query_layer, key_layer = apply_rotary_pos_emb(query_layer, key_layer, cos, sin, seq_len)
         # End of applying RoPE on query & key
 
-
         query_layer = query_layer / math.sqrt(self.attention_head_size)
         if self.use_entropy_scale:
-            query_layer = max(1.0, math.log(seq_len, self.max_position_embeddings)) * query_layer
+            query_layer *= ((torch.arange(0, seq_len) + 1)[None, None, :, None].log() / np.log(
+                self.max_position_embeddings)).clip(1).to(device=query_layer.device, dtype=query_layer.dtype)
         # [BSZ, NAT, L, L]
         attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
 
@@ -621,7 +621,6 @@ class ErnieLayoutSelfAttention(nn.Module):
             i, j = map(lambda t: t.shape[-2], (q, k))
             attention_scores += self.alibi(i, j)
         # end of Alibi
-
 
         attention_scores = attention_scores.float().masked_fill_(attention_mask.to(torch.bool),
                                                                  torch.finfo(attention_scores.dtype).min)
