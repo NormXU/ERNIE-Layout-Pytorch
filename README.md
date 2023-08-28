@@ -1,18 +1,20 @@
 # ERNIE-Layout-Pytorch
 
-This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) which is originally released through [PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP).
+This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) originally released through [PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP).
 
 
-A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch). The model is translated from [PaddlePaddle/ernie-layoutx-base-uncased](https://huggingface.co/PaddlePaddle/ernie-layoutx-base-uncased) with ``tools/convert2torch.py``. It is a script to convert all state dicts of pretrained models for PaddlePaddle into Pytorch style. Feel free to edit it if necessary.
+A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch). The model weight is converted from [PaddlePaddle/ernie-layoutx-base-uncased](https://huggingface.co/PaddlePaddle/ernie-layoutx-base-uncased) to PyTorch style with the [tools/convert2torch.py](https://github.com/NormXU/ERNIE-Layout-Pytorch/blob/main/tools/convert2torch.py) script. Feel free to edit it if necessary.
 
 
 ### NEWs
-**Aug 7, 2023** - Support longer max input sequence length with RoPE and Alibi
 
+- **Aug 28, 2023** - Support Mixed-based RoPE to further expand the max input sequence length
 
-**July 11, 2023** - Rewrite the processor for end-to-end preprocessing on bbox, question and label 
+- **Aug 7, 2023** - Support longer max input sequence length with RoPE and Alibi
 
-**Feb 16, 2023** - Make the tokenizer more huggingface-like with XLNetTokenizer following the advice from [maxjeblick](https://github.com/NormXU/ERNIE-Layout-Pytorch/issues/5). If you pull the latest codes and then find an error when loading the pretrained models, please replace ``"model_type": "xlnet"`` in corresponding ``config.json``. Also, you need to remove ``max_position_embeddings`` in ``config.json``. Or you can simply pull the latest configuration file from huggingface
+- **July 11, 2023** - Rewrite the processor for end-to-end preprocessing on bbox, question and label 
+
+- **Feb 16, 2023** - Make the tokenizer more huggingface-like with XLNetTokenizer following the advice from [maxjeblick](https://github.com/NormXU/ERNIE-Layout-Pytorch/issues/5). If you pull the latest codes and then find an error when loading the pretrained models, please replace ``"model_type": "xlnet"`` in corresponding ``config.json``. Also, you need to remove ``max_position_embeddings`` in ``config.json``. Or you can simply pull the latest configuration file from huggingface
 
 ## A Quick Example
 ```python
