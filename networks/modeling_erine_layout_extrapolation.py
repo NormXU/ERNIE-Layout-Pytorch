@@ -38,6 +38,7 @@ __all__ = [
 
 warning_message = 'You may select either Alibi positional bias or T5 relative positional bias or RoPE, but please refrain from choosing more than one option simultaneously'
 
+
 def exists(val):
     return val is not None
 
@@ -200,6 +201,7 @@ class RotaryEmbedding(torch.nn.Module):
             self.sin_cached[:, :, :seq_len, ...].to(dtype=x.dtype),
         )
 
+
 class MixedNTKScalingRotaryEmbedding(RotaryEmbedding):
     """
         copied from LLamaRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla
@@ -226,6 +228,7 @@ class MixedNTKScalingRotaryEmbedding(RotaryEmbedding):
         self.register_buffer("cos_cached", emb.cos()[None, None, :, :].to(dtype), persistent=False)
         self.register_buffer("sin_cached", emb.sin()[None, None, :, :].to(dtype), persistent=False)
 
+
 class DynamicNTKScalingRotaryEmbedding(RotaryEmbedding):
     """
         copied from LLamaRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla
@@ -241,7 +244,7 @@ class DynamicNTKScalingRotaryEmbedding(RotaryEmbedding):
         if seq_len > self.max_position_embeddings:
             lamda_factor = (
                                    (self.scaling_factor * seq_len / self.max_position_embeddings) - (
-                                       self.scaling_factor - 1)
+                                   self.scaling_factor - 1)
                            ) ** (self.dim / (self.dim - 2))
             base = self.base * lamda_factor
             inv_freq = 1.0 / (base ** (torch.arange(0, self.dim, 2).float().to(device) / self.dim))
@@ -372,7 +375,6 @@ class ErnieLayoutEmbeddings(nn.Module):
         self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
         self.register_buffer("position_ids", torch.arange(config.max_position_embeddings).expand((1, -1)))
 
-
     def _calc_spatial_position_embeddings(self, bbox):
         try:
             left_position_embeddings = self.x_position_embeddings(bbox[:, :, 0])
@@ -387,7 +389,6 @@ class ErnieLayoutEmbeddings(nn.Module):
 
         return left_position_embeddings, upper_position_embeddings, right_position_embeddings, \
                lower_position_embeddings, h_position_embeddings, w_position_embeddings
-
 
     def forward(
             self,
@@ -500,7 +501,6 @@ class ErnieLayoutSelfAttention(nn.Module):
         self.has_relative_attention_bias = config.has_relative_attention_bias
         self.has_spatial_attention_bias = config.has_spatial_attention_bias
 
-
         self.query = nn.Linear(config.hidden_size, self.all_head_size)
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
@@ -512,7 +512,6 @@ class ErnieLayoutSelfAttention(nn.Module):
         self.use_entropy_scale = config.use_entropy_scale
         self.use_alibi = config.use_alibi
         self.use_rope_attention_bias = config.use_rope_attention_bias
-
 
         if config.use_alibi:
             alibi_num_heads = config.alibi_num_heads if hasattr(config, "alibi_num_heads") else self.num_attention_heads
@@ -571,7 +570,6 @@ class ErnieLayoutSelfAttention(nn.Module):
         k = self.key(hidden_states)
         v = self.value(hidden_states)
         return q, k, v
-
 
     def forward(self,
                 hidden_states,
@@ -687,7 +685,7 @@ class ErnieLayoutEncoder(nn.Module):
 
         assert not (
                 self.has_relative_attention_bias and (
-                    self.config.use_alibi or self.config.use_rope_attention_bias)), \
+                self.config.use_alibi or self.config.use_rope_attention_bias)), \
             warning_message
         assert not (self.config.use_rope_attention_bias and self.config.use_alibi), warning_message
 
@@ -1095,7 +1093,6 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
             position_ids=position_ids,
         )
 
-
         visual_shape = list(input_shape)
         visual_shape[1] = self.config.image_feature_pool_shape[0] * self.config.image_feature_pool_shape[1]
         visual_shape = torch.Size(visual_shape)
@@ -1105,14 +1102,13 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
 
         visual_bbox = self._calc_visual_bbox(self.config.image_feature_pool_shape, bbox, device, final_shape)
         final_bbox = torch.cat([bbox, visual_bbox], dim=1)
+        final_position_ids = None
 
-
-        visual_position_ids = torch.arange(0, visual_shape[1], dtype=torch.long,
-                                           device=device).repeat(input_shape[0], 1)
-        if position_ids is None:
-            final_position_ids = visual_position_ids
+        if self.config.keep_visual_position_ids:
+            visual_position_ids = torch.arange(0, visual_shape[1], dtype=torch.long,
+                                               device=device).repeat(input_shape[0], 1)
         else:
-            final_position_ids = torch.cat([position_ids, visual_position_ids], dim=1)
+            visual_position_ids = None
 
         visual_attention_mask = torch.ones(visual_shape, device=device)
         final_attention_mask = torch.cat([attention_mask, visual_attention_mask], dim=1)

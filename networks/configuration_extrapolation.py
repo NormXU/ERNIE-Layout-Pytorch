@@ -18,5 +18,10 @@ def set_config_for_extrapolation(config):
     config.use_entropy_scale = True  # https://openreview.net/forum?id=qc9O2EtrMI-
 
     # Others
-    config.has_relative_attention_bias = False
-    config.consequent_visual_bias = True
+    config.has_relative_attention_bias = False  # always set it to False
+
+    config.consequent_visual_bias = True     # While applying RoPE on the visual component,
+    # if True, the visual component is rotated from an angle starting from pos_idx = 0
+    # if False, staring from a consecutive pos_idx after text component
+
+    config.keep_visual_position_ids = True  # whether to keep visual pos_emb or not
