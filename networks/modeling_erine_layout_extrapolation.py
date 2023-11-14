@@ -505,7 +505,10 @@ class ErnieLayoutSelfAttention(nn.Module):
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
 
-        self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        self.dropout_p = config.attention_probs_dropout_prob
+        self.use_flash_attn = config.use_flash_attn
+        if not self.use_flash_attn:
+            self.dropout = nn.Dropout(self.dropout_p)
 
         self.max_position_embeddings = config.max_position_embeddings
 
@@ -586,7 +589,7 @@ class ErnieLayoutSelfAttention(nn.Module):
         key_layer = self.transpose_for_scores(k)
         value_layer = self.transpose_for_scores(v)
 
-        seq_len = key_layer.shape[-2]
+        bz, num_head, seq_len, _ = key_layer.size()
         # Start of applying RoPE on query & key
         if self.use_rope_attention_bias:
             # whether visual component share PE with layout component
@@ -602,35 +605,60 @@ class ErnieLayoutSelfAttention(nn.Module):
             query_layer, key_layer = apply_rotary_pos_emb(query_layer, key_layer, cos, sin, seq_len)
         # End of applying RoPE on query & key
 
-        query_layer = query_layer / math.sqrt(self.attention_head_size)
         if self.use_entropy_scale:
             query_layer *= ((torch.arange(0, seq_len) + 1)[None, None, :, None].log() / np.log(
                 self.max_position_embeddings)).clip(1).to(device=query_layer.device, dtype=query_layer.dtype)
-        # [BSZ, NAT, L, L]
-        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
 
-        if self.has_relative_attention_bias:
-            attention_scores += rel_pos
-        if self.has_spatial_attention_bias:
-            attention_scores += rel_2d_pos
+        if self.use_flash_attn:
+            logger.info("use flash attention")
+            attention_probs = None
+            bz, num_head, seq_len, _ = key_layer.size()
+            attn_bias = torch.zeros((bz, num_head, seq_len, seq_len), dtype=key_layer.dtype)
+            attn_bias = attn_bias.masked_fill_(
+                attention_mask.to(torch.bool), torch.finfo(attention_mask.dtype).min
+            )
+            if self.has_relative_attention_bias:
+                attn_bias += rel_pos
+            if self.has_spatial_attention_bias:
+                attn_bias += rel_2d_pos
 
-        # start of Alibi
-        if self.use_alibi:
-            i, j = map(lambda t: t.shape[-2], (q, k))
-            attention_scores += self.alibi(i, j)
-        # end of Alibi
+            # start of Alibi
+            if self.use_alibi:
+                i, j = map(lambda t: t.shape[-2], (q, k))
+                attn_bias += self.alibi(i, j)
+            # end of Alibi
 
-        attention_scores = attention_scores.float().masked_fill_(attention_mask.to(torch.bool),
-                                                                 torch.finfo(attention_scores.dtype).min)
-        attention_probs = nn.functional.softmax(attention_scores, dim=-1, dtype=torch.float32).type_as(value_layer)
-        # This is actually dropping out entire tokens to attend to, which might
-        # seem a bit unusual, but is taken from the original Transformer paper.
-        attention_probs = self.dropout(attention_probs)
-        # Mask heads if we want to
-        if head_mask is not None:
-            attention_probs = attention_probs * head_mask
+            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True, enable_mem_efficient=True):
+                context_layer = F.scaled_dot_product_attention(query_layer, key_layer, value_layer,
+                                                               dropout_p=self.dropout_p if self.training else 0.0,
+                                                               attn_mask=attn_bias)
 
-        context_layer = torch.matmul(attention_probs, value_layer)
+        else:
+            query_layer = query_layer / math.sqrt(self.attention_head_size)
+            attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+
+            if self.has_relative_attention_bias:
+                attention_scores += rel_pos
+            if self.has_spatial_attention_bias:
+                attention_scores += rel_2d_pos
+
+            # start of Alibi
+            if self.use_alibi:
+                i, j = map(lambda t: t.shape[-2], (q, k))
+                attention_scores += self.alibi(i, j)
+            # end of Alibi
+
+            attention_scores = attention_scores.float().masked_fill_(attention_mask.to(torch.bool),
+                                                                     torch.finfo(attention_scores.dtype).min)
+            attention_probs = nn.functional.softmax(attention_scores, dim=-1, dtype=torch.float32).type_as(value_layer)
+            # This is actually dropping out entire tokens to attend to, which might
+            # seem a bit unusual, but is taken from the original Transformer paper.
+            attention_probs = self.dropout(attention_probs)
+            # Mask heads if we want to
+            if head_mask is not None:
+                attention_probs = attention_probs * head_mask
+
+            context_layer = torch.matmul(attention_probs, value_layer)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
@@ -1394,6 +1422,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
         return TokenClassifierOutput(
             loss=loss,
             logits=logits,
+            hidden_states=sequence_output
         )
 
 

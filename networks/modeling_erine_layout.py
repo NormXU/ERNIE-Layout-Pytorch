@@ -253,7 +253,10 @@ class ErnieLayoutSelfAttention(nn.Module):
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
 
-        self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        self.dropout_p = config.attention_probs_dropout_prob
+        self.use_flash_attn = config.use_flash_attn
+        if not self.use_flash_attn:
+            self.dropout = nn.Dropout(self.dropout_p)
 
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (
@@ -278,37 +281,51 @@ class ErnieLayoutSelfAttention(nn.Module):
             rel_pos=None,
             rel_2d_pos=None,
     ):
-        q, k, v = self.compute_qkv(hidden_states)
-
+        query_layer, key_layer, value_layer = self.compute_qkv(hidden_states)
         # (B, L, H*D) -> (B, H, L, D)
-        query_layer = self.transpose_for_scores(q)
-        key_layer = self.transpose_for_scores(k)
-        value_layer = self.transpose_for_scores(v)
+        query_layer = self.transpose_for_scores(query_layer)
+        key_layer = self.transpose_for_scores(key_layer)
+        value_layer = self.transpose_for_scores(value_layer)
+        if self.use_flash_attn:
+            logger.info("use flash attention")
+            attention_probs = None
+            bz, num_head, seq_len, _ = key_layer.size()
+            attn_bias = torch.zeros((bz, num_head, seq_len, seq_len), dtype=key_layer.dtype)
+            attn_bias = attn_bias.masked_fill_(
+                attention_mask.to(torch.bool), torch.finfo(attention_mask.dtype).min
+            )
+            if self.has_relative_attention_bias:
+                attn_bias += rel_pos
+            if self.has_spatial_attention_bias:
+                attn_bias += rel_2d_pos
+            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True, enable_mem_efficient=True):
+                context_layer = F.scaled_dot_product_attention(query_layer, key_layer, value_layer,
+                                                               dropout_p=self.dropout_p if self.training else 0.0,
+                                                               attn_mask=attn_bias)
+        else:
+            query_layer = query_layer / math.sqrt(self.attention_head_size)
+            # [BSZ, NAT, L, L]
+            attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
 
-        query_layer = query_layer / math.sqrt(self.attention_head_size)
-        # [BSZ, NAT, L, L]
-        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+            if self.has_relative_attention_bias:
+                attention_scores += rel_pos
+            if self.has_spatial_attention_bias:
+                attention_scores += rel_2d_pos
+            attention_scores = attention_scores.float().masked_fill_(
+                attention_mask.to(torch.bool), torch.finfo(attention_scores.dtype).min
+            )
+            attention_probs = nn.functional.softmax(attention_scores, dim=-1, dtype=torch.float32).type_as(value_layer)
+            # This is actually dropping out entire tokens to attend to, which might
+            # seem a bit unusual, but is taken from the original Transformer paper.
+            attention_probs = self.dropout(attention_probs)
+            # Mask heads if we want to
+            if head_mask is not None:
+                attention_probs = attention_probs * head_mask
+            context_layer = torch.matmul(attention_probs, value_layer)
 
-        if self.has_relative_attention_bias:
-            attention_scores += rel_pos
-        if self.has_spatial_attention_bias:
-            attention_scores += rel_2d_pos
-        attention_scores = attention_scores.float().masked_fill_(
-            attention_mask.to(torch.bool), torch.finfo(attention_scores.dtype).min
-        )
-        attention_probs = nn.functional.softmax(attention_scores, dim=-1, dtype=torch.float32).type_as(value_layer)
-        # This is actually dropping out entire tokens to attend to, which might
-        # seem a bit unusual, but is taken from the original Transformer paper.
-        attention_probs = self.dropout(attention_probs)
-        # Mask heads if we want to
-        if head_mask is not None:
-            attention_probs = attention_probs * head_mask
-
-        context_layer = torch.matmul(attention_probs, value_layer)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
-
         outputs = (context_layer, attention_probs) if output_attentions else (context_layer,)
         return outputs
 
@@ -341,9 +358,7 @@ class ErnieLayoutAttention(nn.Module):
         attention_output = self.output(self_outputs[0], hidden_states)
         # add attentions if we output them
         if output_attentions:
-            outputs = [
-                          attention_output,
-                      ] + self_outputs[1:]
+            outputs = [attention_output, ] + self_outputs[1:]
         else:
             outputs = [attention_output]
         return outputs
@@ -361,29 +376,26 @@ class ErnieLayoutEncoder(nn.Module):
         if self.has_relative_attention_bias:
             self.rel_pos_bins = config.rel_pos_bins
             self.max_rel_pos = config.max_rel_pos
-            self.rel_pos_onehot_size = config.rel_pos_bins
-            self.rel_pos_bias = nn.Linear(self.rel_pos_onehot_size, config.num_attention_heads, bias=False)
+            self.rel_pos_bias = nn.Linear(self.rel_pos_bins, config.num_attention_heads, bias=False)
 
         if self.has_spatial_attention_bias:
             self.max_rel_2d_pos = config.max_rel_2d_pos
             self.rel_2d_pos_bins = config.rel_2d_pos_bins
-            self.rel_2d_pos_onehot_size = config.rel_2d_pos_bins
-            self.rel_pos_x_bias = nn.Linear(self.rel_2d_pos_onehot_size, config.num_attention_heads, bias=False)
-            self.rel_pos_y_bias = nn.Linear(self.rel_2d_pos_onehot_size, config.num_attention_heads, bias=False)
+            self.rel_pos_x_bias = nn.Linear(self.rel_2d_pos_bins, config.num_attention_heads, bias=False)
+            self.rel_pos_y_bias = nn.Linear(self.rel_2d_pos_bins, config.num_attention_heads, bias=False)
 
-    def _cal_1d_pos_emb(self, hidden_states, position_ids):
+    def _cal_1d_pos_emb(self, position_ids):
         rel_pos_mat = position_ids.unsqueeze(-2) - position_ids.unsqueeze(-1)
         rel_pos = relative_position_bucket(
             rel_pos_mat,
             num_buckets=self.rel_pos_bins,
             max_distance=self.max_rel_pos,
         )
-        rel_pos = F.one_hot(rel_pos, num_classes=self.rel_pos_onehot_size).type_as(hidden_states)
-        rel_pos = self.rel_pos_bias(rel_pos).permute(0, 3, 1, 2)
+        rel_pos = self.rel_pos_bias.weight.t()[rel_pos].permute(0, 3, 1, 2)
         rel_pos = rel_pos.contiguous()
         return rel_pos
 
-    def _cal_2d_pos_emb(self, hidden_states, bbox):
+    def _cal_2d_pos_emb(self, bbox):
         position_coord_x = bbox[:, :, 0]
         position_coord_y = bbox[:, :, 3]
         rel_pos_x_2d_mat = position_coord_x.unsqueeze(-2) - position_coord_x.unsqueeze(-1)
@@ -398,10 +410,8 @@ class ErnieLayoutEncoder(nn.Module):
             num_buckets=self.rel_2d_pos_bins,
             max_distance=self.max_rel_2d_pos,
         )
-        rel_pos_x = F.one_hot(rel_pos_x, num_classes=self.rel_2d_pos_onehot_size).type_as(hidden_states)
-        rel_pos_y = F.one_hot(rel_pos_y, num_classes=self.rel_2d_pos_onehot_size).type_as(hidden_states)
-        rel_pos_x = self.rel_pos_x_bias(rel_pos_x).permute(0, 3, 1, 2)
-        rel_pos_y = self.rel_pos_y_bias(rel_pos_y).permute(0, 3, 1, 2)
+        rel_pos_x = self.rel_pos_x_bias.weight.t()[rel_pos_x].permute(0, 3, 1, 2)
+        rel_pos_y = self.rel_pos_y_bias.weight.t()[rel_pos_y].permute(0, 3, 1, 2)
         rel_pos_x = rel_pos_x.contiguous()
         rel_pos_y = rel_pos_y.contiguous()
         rel_2d_pos = rel_pos_x + rel_pos_y
@@ -419,11 +429,8 @@ class ErnieLayoutEncoder(nn.Module):
     ):
         all_hidden_states = () if output_hidden_states else None
 
-        rel_pos = self._cal_1d_pos_emb(
-            hidden_states,
-            position_ids) if self.has_relative_attention_bias else None
-        rel_2d_pos = self._cal_2d_pos_emb(
-            hidden_states, bbox) if self.has_spatial_attention_bias else None
+        rel_pos = self._cal_1d_pos_emb(position_ids) if self.has_relative_attention_bias else None
+        rel_2d_pos = self._cal_2d_pos_emb(bbox) if self.has_spatial_attention_bias else None
 
         hidden_save = dict()
         hidden_save["input_hidden_states"] = hidden_states
@@ -712,11 +719,9 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
 
         with torch.no_grad():
             if num_position_embeds_diff > 0:
-                self.embeddings.position_embeddings.weight[:
-                                                           -num_position_embeds_diff] = old_position_embeddings_weight
+                self.embeddings.position_embeddings.weight[:-num_position_embeds_diff] = old_position_embeddings_weight
             else:
-                self.embeddings.position_embeddings.weight = old_position_embeddings_weight[:
-                                                                                            num_position_embeds_diff]
+                self.embeddings.position_embeddings.weight = old_position_embeddings_weight[:num_position_embeds_diff]
 
     def forward(self,
                 input_ids=None,
@@ -1087,6 +1092,7 @@ class ErnieLayoutForTokenClassification(ErnieLayoutPretrainedModel):
         return TokenClassifierOutput(
             loss=loss,
             logits=logits,
+            hidden_states=sequence_output
         )
 
 

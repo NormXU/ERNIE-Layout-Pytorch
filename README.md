@@ -7,7 +7,7 @@ A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https:/
 
 
 ### NEWs
-
+- **Nov 14, 2023** - Suppose [FlashAttention](https://pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html). You can simply set `config.use_flash_attn=True` to enable the function.
 - **Aug 28, 2023** - Support Mixed-based RoPE to further expand the max input sequence length
 
 - **Aug 7, 2023** - Support longer max input sequence length with RoPE and Alibi

@@ -28,6 +28,7 @@ def run_token_cls_with_ernie(model_type="ErnieLayoutForTokenClassification"):
     # initialize config
     config = ErnieLayoutConfig.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
     config.num_classes = 2  # num of classes
+    config.use_flash_attn = True  # use flash attention
 
     if model_type == "exErnieLayoutForTokenClassification":
         set_config_for_extrapolation(config)
@@ -37,7 +38,6 @@ def run_token_cls_with_ernie(model_type="ErnieLayoutForTokenClassification"):
         pretrained_model_name_or_path=pretrain_torch_model_or_path,
         config=config,
     )
-
     outputs = model(**encoding)
     loss = outputs.loss
     logits = outputs.logits
