@@ -28,7 +28,7 @@ def prepare_dummy_encodings(pretrain_torch_model_or_path, doc_imag_path):
 class TestFlashAttn(unittest.TestCase):
     def setUp(self) -> None:
         doc_imag_path = os.path.join(PROJECT_ROOT_PATH, "examples/dummy_input.jpeg")
-        pretrain_torch_model_or_path = "/home/ysocr/data/pretrain/ernie-layoutx-base-uncased/torch_version"
+        pretrain_torch_model_or_path = "Norm/ERNIE-Layout-Pytorch"
         self.encoding = prepare_dummy_encodings(pretrain_torch_model_or_path, doc_imag_path)
         self.pretrain_model_pth = pretrain_torch_model_or_path
 
