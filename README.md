@@ -3,7 +3,9 @@
 This is an unofficial Pytorch implementation of [ERNIE-Layout](http://arxiv.org/abs/2210.06155) originally released through [PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP).
 
 
-A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded at [hub](https://huggingface.co/Norm/ERNIE-Layout-Pytorch). The model weight is converted from [PaddlePaddle/ernie-layoutx-base-uncased](https://huggingface.co/PaddlePaddle/ernie-layoutx-base-uncased) to PyTorch style with the [tools/convert2torch.py](https://github.com/NormXU/ERNIE-Layout-Pytorch/blob/main/tools/convert2torch.py) script. Feel free to edit it if necessary.
+A Pytorch-style ERNIE-Layout Pretrained Model can be downloaded [here](https://huggingface.co/Norm/ERNIE-Layout-Pytorch). 👈🏻
+
+The model weight is converted from [PaddlePaddle/ernie-layoutx-base-uncased](https://huggingface.co/PaddlePaddle/ernie-layoutx-base-uncased) to PyTorch style with the [tools/convert2torch.py](https://github.com/NormXU/ERNIE-Layout-Pytorch/blob/main/tools/convert2torch.py) script. Feel free to edit it if necessary.
 
 
 ### NEWs
