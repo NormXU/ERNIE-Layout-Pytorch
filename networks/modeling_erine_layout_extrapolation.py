@@ -612,23 +612,21 @@ class ErnieLayoutSelfAttention(nn.Module):
         if self.use_flash_attn:
             logger.info("use flash attention")
             attention_probs = None
-            bz, num_head, seq_len, _ = key_layer.size()
-            attn_bias = torch.zeros((bz, num_head, seq_len, seq_len), dtype=key_layer.dtype, device=key_layer.device)
-            attn_bias = attn_bias.masked_fill_(
-                attention_mask.to(torch.bool), torch.finfo(attention_mask.dtype).min
-            )
+            bz, _, seq_len, _ = key_layer.size()
+            attn_bias = torch.zeros((bz, 1, seq_len, seq_len), dtype=key_layer.dtype, device=key_layer.device)
+            attn_bias.masked_fill_(attention_mask, float("-inf"))
             if self.has_relative_attention_bias:
-                attn_bias += rel_pos
+                attn_bias = attn_bias + rel_pos
             if self.has_spatial_attention_bias:
-                attn_bias += rel_2d_pos
+                attn_bias = attn_bias + rel_2d_pos
 
             # start of Alibi
             if self.use_alibi:
                 i, j = map(lambda t: t.shape[-2], (q, k))
-                attn_bias += self.alibi(i, j)
+                attn_bias = attn_bias + self.alibi(i, j)
             # end of Alibi
 
-            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True, enable_mem_efficient=True):
+            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_mem_efficient=True):
                 context_layer = F.scaled_dot_product_attention(query_layer, key_layer, value_layer,
                                                                dropout_p=self.dropout_p if self.training else 0.0,
                                                                attn_mask=attn_bias)
@@ -971,6 +969,8 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
         self.visual_LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.visual_dropout = nn.Dropout(config.hidden_dropout_prob)
 
+        self.use_flash_attn = getattr(config, "use_flash_attn", False)
+
     def _calc_text_embeddings(self, input_ids, bbox, position_ids, token_type_ids):
         words_embeddings = self.embeddings.word_embeddings(input_ids)
         x1, y1, x2, y2, h, w = self.embeddings._calc_spatial_position_embeddings(bbox)
@@ -1149,8 +1149,9 @@ class ErnieLayoutModel(ErnieLayoutPretrainedModel):
         final_emb = torch.cat([text_layout_emb, visual_emb], dim=1)
 
         extended_attention_mask = final_attention_mask.unsqueeze(1).unsqueeze(2)
-
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+        if self.use_flash_attn:
+            extended_attention_mask = extended_attention_mask.to(torch.bool)
 
         if head_mask is not None:
             if head_mask.dim() == 1:
