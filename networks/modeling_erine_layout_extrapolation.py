@@ -613,7 +613,7 @@ class ErnieLayoutSelfAttention(nn.Module):
             logger.info("use flash attention")
             attention_probs = None
             bz, num_head, seq_len, _ = key_layer.size()
-            attn_bias = torch.zeros((bz, num_head, seq_len, seq_len), dtype=key_layer.dtype)
+            attn_bias = torch.zeros((bz, num_head, seq_len, seq_len), dtype=key_layer.dtype, device=key_layer.device)
             attn_bias = attn_bias.masked_fill_(
                 attention_mask.to(torch.bool), torch.finfo(attention_mask.dtype).min
             )

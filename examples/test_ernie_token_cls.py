@@ -18,6 +18,8 @@ def run_token_cls_with_ernie(model_type="ErnieLayoutForTokenClassification"):
 
     # initialize tokenizer
     tokenizer = ErnieLayoutTokenizerFast.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
+    # setting tokenizer to pad on the right side of the sequence
+    tokenizer.padding_side = 'right'
 
     # initialize feature extractor
     feature_extractor = LayoutLMv3ImageProcessor(apply_ocr=False)
