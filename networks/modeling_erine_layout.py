@@ -254,7 +254,7 @@ class ErnieLayoutSelfAttention(nn.Module):
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
 
         self.dropout_p = config.attention_probs_dropout_prob
-        self.use_flash_attn = config.use_flash_attn
+        self.use_flash_attn = getattr(config, "use_flash_attn", False)
         if not self.use_flash_attn:
             self.dropout = nn.Dropout(self.dropout_p)
 
