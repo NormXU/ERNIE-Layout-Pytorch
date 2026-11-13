@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 # create: @time: 2/16/23 16:46
 
+import inspect
 from typing import List, Optional, Union
 
 from transformers.tokenization_utils_base import (
@@ -154,6 +155,8 @@ class ErnieLayoutTokenizerFast(XLNetTokenizerFast):
         return_offsets_mapping: bool = False,
         return_length: bool = False,
         verbose: bool = True,
+        padding_side: Optional[str] = None,
+        **kwargs,
     ) -> BatchEncoding:
         if not isinstance(batch_text_or_text_pairs, (tuple, list)):
             raise TypeError(
@@ -161,13 +164,17 @@ class ErnieLayoutTokenizerFast(XLNetTokenizerFast):
             )
 
         # Set the truncation and padding strategy and restore the initial configuration
-        self.set_truncation_and_padding(
+        truncation_and_padding = dict(
             padding_strategy=padding_strategy,
             truncation_strategy=truncation_strategy,
             max_length=max_length,
             stride=stride,
             pad_to_multiple_of=pad_to_multiple_of,
         )
+        # transformers >= 4.45 requires `padding_side` here; older versions don't accept it
+        if "padding_side" in inspect.signature(super().set_truncation_and_padding).parameters:
+            truncation_and_padding["padding_side"] = padding_side if padding_side is not None else self.padding_side
+        self.set_truncation_and_padding(**truncation_and_padding)
 
         if is_pair:
             batch_text_or_text_pairs = [(text.split(), text_pair) for text, text_pair in batch_text_or_text_pairs]
