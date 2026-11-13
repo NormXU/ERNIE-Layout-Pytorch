@@ -37,6 +37,19 @@ __all__ = [
 ]
 
 
+
+def gather_relative_position_bias(linear, buckets, dtype=None):
+    """Bias of `linear` (num_buckets -> num_heads, no bias term) at each bucket, as (batch, heads, seq, seq).
+
+    Same values as `linear(F.one_hot(buckets))` or `linear.weight.t()[buckets]`, but `index_select` neither builds the
+    one-hot tensor (seq x seq x num_buckets) nor has the slow backward of advanced indexing.
+    """
+    bias = linear.weight.t().index_select(0, buckets.reshape(-1)).view(*buckets.shape, -1)
+    if dtype is not None:
+        bias = bias.to(dtype)
+    return bias.permute(0, 3, 1, 2).contiguous()
+
+
 def relative_position_bucket(relative_position,
                              bidirectional=True,
                              num_buckets=32,
@@ -389,9 +402,7 @@ class ErnieLayoutEncoder(nn.Module):
             num_buckets=self.rel_pos_bins,
             max_distance=self.max_rel_pos,
         )
-        rel_pos = self.rel_pos_bias.weight.t()[rel_pos].permute(0, 3, 1, 2)
-        rel_pos = rel_pos.contiguous()
-        return rel_pos
+        return gather_relative_position_bias(self.rel_pos_bias, rel_pos)
 
     def _cal_2d_pos_emb(self, bbox):
         position_coord_x = bbox[:, :, 0]
@@ -408,12 +419,9 @@ class ErnieLayoutEncoder(nn.Module):
             num_buckets=self.rel_2d_pos_bins,
             max_distance=self.max_rel_2d_pos,
         )
-        rel_pos_x = self.rel_pos_x_bias.weight.t()[rel_pos_x].permute(0, 3, 1, 2)
-        rel_pos_y = self.rel_pos_y_bias.weight.t()[rel_pos_y].permute(0, 3, 1, 2)
-        rel_pos_x = rel_pos_x.contiguous()
-        rel_pos_y = rel_pos_y.contiguous()
-        rel_2d_pos = rel_pos_x + rel_pos_y
-        return rel_2d_pos
+        rel_pos_x = gather_relative_position_bias(self.rel_pos_x_bias, rel_pos_x)
+        rel_pos_y = gather_relative_position_bias(self.rel_pos_y_bias, rel_pos_y)
+        return rel_pos_x + rel_pos_y
 
     def forward(
             self,

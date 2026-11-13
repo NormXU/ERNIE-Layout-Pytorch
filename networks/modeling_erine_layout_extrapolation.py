@@ -293,6 +293,26 @@ class DropPath(nn.Module):
         return "p={}".format(self.drop_prob)
 
 
+
+def gather_relative_position_bias(linear, buckets, dtype=None):
+    """Bias of `linear` (num_buckets -> num_heads, no bias term) at each bucket, as (batch, heads, seq, seq).
+
+    Same values as `linear(F.one_hot(buckets))` or `linear.weight.t()[buckets]`, but `index_select` neither builds the
+    one-hot tensor (seq x seq x num_buckets) nor has the slow backward of advanced indexing.
+    """
+    bias = linear.weight.t().index_select(0, buckets.reshape(-1)).view(*buckets.shape, -1)
+    if dtype is not None:
+        bias = bias.to(dtype)
+    return bias.permute(0, 3, 1, 2).contiguous()
+
+
+def _bias_dtype(hidden_states):
+    # the dtype `linear(F.one_hot(...).type_as(hidden_states))` returns, also under autocast
+    if hidden_states.is_cuda and torch.is_autocast_enabled():
+        return torch.get_autocast_gpu_dtype()
+    return hidden_states.dtype
+
+
 def relative_position_bucket(relative_position, bidirectional=True, num_buckets=32, max_distance=128):
     """
     Adapted from Mesh Tensorflow:
@@ -735,10 +755,7 @@ class ErnieLayoutEncoder(nn.Module):
             num_buckets=self.rel_pos_bins,
             max_distance=self.max_rel_pos,
         )
-        rel_pos = F.one_hot(rel_pos, num_classes=self.rel_pos_onehot_size).type_as(hidden_states)
-        rel_pos = self.rel_pos_bias(rel_pos).permute(0, 3, 1, 2)
-        rel_pos = rel_pos.contiguous()
-        return rel_pos
+        return gather_relative_position_bias(self.rel_pos_bias, rel_pos, _bias_dtype(hidden_states))
 
     def _cal_2d_pos_emb(self, hidden_states, bbox):
         position_coord_x = bbox[:, :, 0]
@@ -755,14 +772,10 @@ class ErnieLayoutEncoder(nn.Module):
             num_buckets=self.rel_2d_pos_bins,
             max_distance=self.max_rel_2d_pos,
         )
-        rel_pos_x = F.one_hot(rel_pos_x, num_classes=self.rel_2d_pos_onehot_size).type_as(hidden_states)
-        rel_pos_y = F.one_hot(rel_pos_y, num_classes=self.rel_2d_pos_onehot_size).type_as(hidden_states)
-        rel_pos_x = self.rel_pos_x_bias(rel_pos_x).permute(0, 3, 1, 2)
-        rel_pos_y = self.rel_pos_y_bias(rel_pos_y).permute(0, 3, 1, 2)
-        rel_pos_x = rel_pos_x.contiguous()
-        rel_pos_y = rel_pos_y.contiguous()
-        rel_2d_pos = rel_pos_x + rel_pos_y
-        return rel_2d_pos
+        dtype = _bias_dtype(hidden_states)
+        rel_pos_x = gather_relative_position_bias(self.rel_pos_x_bias, rel_pos_x, dtype)
+        rel_pos_y = gather_relative_position_bias(self.rel_pos_y_bias, rel_pos_y, dtype)
+        return rel_pos_x + rel_pos_y
 
     def forward(
             self,
