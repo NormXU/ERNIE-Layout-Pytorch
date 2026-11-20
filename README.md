@@ -38,7 +38,9 @@ pil_image = Image.open(doc_imag_path).convert("RGB")
 tokenizer = ErnieLayoutTokenizerFast.from_pretrained(pretrained_model_name_or_path=pretrain_torch_model_or_path)
 
 # initialize feature extractor
-feature_extractor = LayoutLMv3ImageProcessor(apply_ocr=False)
+# The visual backbone normalises 0-255 RGB pixels itself (pixel_mean/pixel_std), as PaddleNLP feeds
+# them, so the image processor must not rescale or normalise them.
+feature_extractor = LayoutLMv3ImageProcessor(apply_ocr=False, do_rescale=False, do_normalize=False)
 processor = ErnieLayoutProcessor(image_processor=feature_extractor, tokenizer=tokenizer)
 
 # Tokenize context & questions
